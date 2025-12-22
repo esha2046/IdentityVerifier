@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Platform Digital Identity Verifier</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 Cross-Platform Digital Identity Verifier</h1>
+            <p class="subtitle">Decentralized Identity Verification System | DBMS Lab Project</p>
+        </header>
+
+        <!-- Statistics Dashboard -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalIdentities">0</div>
+                <div class="stat-label">Total Identities</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalVerifications">0</div>
+                <div class="stat-label">Platform Verifications</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgTrustScore">0</div>
+                <div class="stat-label">Avg Trust Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgConsistency">0</div>
+                <div class="stat-label">Avg Consistency</div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="ui.showTab('identities')">Identity Anchors</button>
+            <button class="tab" onclick="ui.showTab('verifications')">Platform Verifications</button>
+            <button class="tab" onclick="ui.showTab('consistency')">Consistency Checks</button>
+            <button class="tab" onclick="ui.showTab('events')">Reputation Events</button>
+        </div>
+
+        <!-- Identity Anchors Section -->
+        <div id="identities" class="content-section active">
+            <h2>Create New Identity Anchor</h2>
+            <div class="message" id="identityMessage"></div>
+            <button onclick="createIdentity()">Generate New Identity</button>
+
+            <h2 style="margin-top: 40px;">Existing Identity Anchors</h2>
+            
+            <div class="form-group" style="max-width: 500px; margin-bottom: 20px;">
+                <label>🔍 Search Identities:</label>
+                <input type="text" id="searchBox" placeholder="Search by ID or Public Key..." 
+                       oninput="searchIdentities()">
+            </div>
+
+            <div class="table-container">
+                <table id="identitiesTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Public Key</th>
+                            <th>Trust Score</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Platform Verifications Section -->
+        <div id="verifications" class="content-section">
+            <h2>Add Platform Verification</h2>
+            <div class="message" id="verificationMessage"></div>
+            <form onsubmit="addVerification(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Identity Anchor ID:</label>
+                        <input type="number" id="verifyAnchorId" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Platform:</label>
+                        <select id="verifyPlatform" required>
+                            <option value="">Select Platform</option>
+                            <option value="Instagram">Instagram</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="X">X (Twitter)</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="GitHub">GitHub</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Profile URL:</label>
+                    <input type="url" id="verifyUrl" placeholder="https://..." required>
+                </div>
+                <button type="submit">Add Verification</button>
+            </form>
+
+            <h2 style="margin-top: 40px;">All Platform Verifications</h2>
+            <div class="table-container">
+                <table id="verificationsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Anchor ID</th>
+                            <th>Platform</th>
+                            <th>Profile URL</th>
+                            <th>Verified At</th>
+                            <th>Trust Score</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Consistency Checks Section -->
+        <div id="consistency" class="content-section">
+            <h2>Run Consistency Check</h2>
+            <div class="message" id="consistencyMessage"></div>
+            <form onsubmit="runConsistencyCheck(event)">
+                <div class="form-group">
+                    <label>User Group:</label>
+                    <input type="text" id="userGroup" placeholder="e.g., user_123" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Platform A:</label>
+                        <select id="platformA" required>
+                            <option value="">Select Platform</option>
+                            <option value="Instagram">Instagram</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="X">X (Twitter)</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="GitHub">GitHub</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Platform B:</label>
+                        <select id="platformB" required>
+                            <option value="">Select Platform</option>
+                            <option value="Instagram">Instagram</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="X">X (Twitter)</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="GitHub">GitHub</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit">Run Check</button>
+            </form>
+
+            <h2 style="margin-top: 40px;">Recent Consistency Checks</h2>
+            <div class="table-container">
+                <table id="consistencyTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User Group</th>
+                            <th>Platform A</th>
+                            <th>Platform B</th>
+                            <th>Consistency Score</th>
+                            <th>Checked At</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Reputation Events Section -->
+        <div id="events" class="content-section">
+            <h2>Log Reputation Event</h2>
+            <div class="message" id="eventMessage"></div>
+            <form onsubmit="logEvent(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Anchor ID:</label>
+                        <input type="number" id="eventAnchorId" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Event Type:</label>
+                        <select id="eventType" required>
+                            <option value="">Select Type</option>
+                            <option value="successful_verification">Successful Verification</option>
+                            <option value="suspicious_activity">Suspicious Activity</option>
+                            <option value="profile_update">Profile Update</option>
+                            <option value="re_verification">Re-verification</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Platform:</label>
+                        <input type="text" id="eventPlatform" placeholder="e.g., Instagram">
+                    </div>
+                    <div class="form-group">
+                        <label>Score Impact:</label>
+                        <input type="number" step="0.01" id="scoreImpact" value="0" required>
+                    </div>
+                </div>
+                <button type="submit">Log Event</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Trust Score History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <h2>Trust Score History</h2>
+            <div id="historyContent"></div>
+        </div>
+    </div>
+
+    <!-- Load JavaScript files in correct order -->
+    <script src="api.js"></script>
+    <script src="ui.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
