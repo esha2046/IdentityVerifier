@@ -1,7 +1,7 @@
 DB_CONFIG = {
-    'dbname': 'identity_verifier',
+    'dbname': 'Identity Verifier',
     'user': 'postgres',
-    'password': 'password', 
+    'password': 'Vinathi@123', 
     'host': 'localhost',
     'port': '5432'
 }

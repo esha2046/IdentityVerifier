@@ -216,6 +216,21 @@
             <div id="historyContent"></div>
         </div>
     </div>
+    <!-- Add this button somewhere in your index.html -->
+<button onclick="logout()">Logout</button>
+
+<script>
+function logout() {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('user');
+    window.location.href = 'login.html';
+}
+
+// Check if user is logged in (add this at the top of your script)
+if (localStorage.getItem('isLoggedIn') !== 'true') {
+    window.location.href = 'login.html';
+}
+</script>
 
     <!-- Load JavaScript files in correct order -->
     <script src="api.js"></script>
