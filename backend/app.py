@@ -1,13 +1,12 @@
-"""Main Flask application"""
 from flask import Flask, jsonify
 from flask_cors import CORS
-from config import API_HOST, API_PORT, DEBUG
+from config import HOST, PORT, DEBUG
 import routes
 
 app = Flask(__name__)
 CORS(app)
 
-# reg routes
+# Register all routes
 app.add_url_rule('/api/statistics', 'statistics', routes.get_statistics, methods=['GET'])
 app.add_url_rule('/api/identity', 'create_identity', routes.create_identity, methods=['POST'])
 app.add_url_rule('/api/identities', 'identities', routes.get_identities, methods=['GET'])
@@ -34,12 +33,12 @@ if __name__ == '__main__':
     print("=" * 60)
     print("Cross-Platform Digital Identity Verifier")
     print("=" * 60)
-    print(f"Server: http://localhost:{API_PORT}")
-    print(f"API: http://localhost:{API_PORT}/api/")
+    print(f"Server: http://localhost:{PORT}")
+    print(f"API: http://localhost:{PORT}/api/")
     print("\nSetup checklist:")
-    print("update your database password in config.py")
-    print("run database_schema.sql in the repo to sync")
-    print("keep this terminal open")
+    print("1. Update database password in config.py")
+    print("2. Run database_schema.sql to create tables")
+    print("3. Keep this terminal open")
     print("=" * 60)
     
-    app.run(debug=DEBUG, host=API_HOST, port=API_PORT)
+    app.run(debug=DEBUG, host=HOST, port=PORT)

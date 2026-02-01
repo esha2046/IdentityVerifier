@@ -1,11 +1,11 @@
-DB_CONFIG = {
-    'dbname': 'Identity Verifier',
-    'user': 'postgres',
-    'password': 'Vinathi@123', 
-    'host': 'localhost',
-    'port': '5432'
-}
+# Database settings
+DB_NAME = 'identity_verifier'
+DB_USER = 'postgres'
+DB_PASSWORD = 'password'  # Change this to your PostgreSQL password
+DB_HOST = 'localhost'
+DB_PORT = '5432'
 
-API_HOST = '0.0.0.0'
-API_PORT = 5000
+# Server settings
+HOST = '0.0.0.0'
+PORT = 5000
 DEBUG = True
