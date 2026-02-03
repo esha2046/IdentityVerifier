@@ -216,6 +216,36 @@
             <div id="historyContent"></div>
         </div>
     </div>
+
+    <!-- OAuth Verification Modal -->
+    <div id="oauthModal" class="oauth-modal">
+        <div class="oauth-modal-content">
+            <span class="oauth-close" onclick="oauthSimulator.closeModal()" id="oauthCloseBtn" style="display: none;">&times;</span>
+            <div class="oauth-header" id="oauthHeader">
+                <div class="oauth-logo" id="oauthLogo"></div>
+                <h2 id="oauthTitle">Connecting to Platform</h2>
+            </div>
+            
+            <div class="oauth-body">
+                <div class="verification-steps" id="verificationSteps">
+                    <!-- Steps will be dynamically generated -->
+                </div>
+                
+                <div class="verification-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p class="progress-text" id="progressText">Initializing verification...</p>
+                </div>
+
+                <div class="verification-status" id="verificationStatus" style="display: none;">
+                    <div class="status-icon" id="statusIcon"></div>
+                    <h3 id="statusTitle"></h3>
+                    <p id="statusMessage"></p>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Add this button somewhere in your index.html -->
 <button onclick="logout()">Logout</button>
 

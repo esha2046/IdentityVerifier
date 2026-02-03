@@ -1,3 +1,195 @@
+// OAuth Verification Simulation
+const oauthSimulator = {
+    platformConfigs: {
+        'Instagram': {
+            logo: '📷',
+            color: 'instagram',
+            steps: [
+                { title: 'Redirecting to Instagram', description: 'Opening OAuth authorization page...', duration: 1500 },
+                { title: 'Authenticating User', description: 'Verifying credentials with Instagram...', duration: 2000 },
+                { title: 'Requesting Profile Access', description: 'Requesting permission to access profile data...', duration: 1800 },
+                { title: 'Fetching Profile Data', description: 'Retrieving profile information...', duration: 2200 },
+                { title: 'Validating Profile', description: 'Cross-referencing profile details...', duration: 1500 },
+                { title: 'Verifying Identity', description: 'Matching identity anchor with profile...', duration: 2000 }
+            ]
+        },
+        'LinkedIn': {
+            logo: '💼',
+            color: 'linkedin',
+            steps: [
+                { title: 'Redirecting to LinkedIn', description: 'Opening OAuth authorization page...', duration: 1500 },
+                { title: 'Authenticating User', description: 'Verifying credentials with LinkedIn...', duration: 2000 },
+                { title: 'Requesting Profile Access', description: 'Requesting permission to access profile data...', duration: 1800 },
+                { title: 'Fetching Profile Data', description: 'Retrieving professional profile...', duration: 2500 },
+                { title: 'Validating Profile', description: 'Cross-referencing profile details...', duration: 1500 },
+                { title: 'Verifying Identity', description: 'Matching identity anchor with profile...', duration: 2000 }
+            ]
+        },
+        'X': {
+            logo: '🐦',
+            color: 'twitter',
+            steps: [
+                { title: 'Redirecting to X', description: 'Opening OAuth authorization page...', duration: 1500 },
+                { title: 'Authenticating User', description: 'Verifying credentials with X...', duration: 2000 },
+                { title: 'Requesting Profile Access', description: 'Requesting permission to access profile data...', duration: 1800 },
+                { title: 'Fetching Profile Data', description: 'Retrieving profile information...', duration: 2000 },
+                { title: 'Validating Profile', description: 'Cross-referencing profile details...', duration: 1500 },
+                { title: 'Verifying Identity', description: 'Matching identity anchor with profile...', duration: 2000 }
+            ]
+        },
+        'Facebook': {
+            logo: '👥',
+            color: 'facebook',
+            steps: [
+                { title: 'Redirecting to Facebook', description: 'Opening OAuth authorization page...', duration: 1500 },
+                { title: 'Authenticating User', description: 'Verifying credentials with Facebook...', duration: 2000 },
+                { title: 'Requesting Profile Access', description: 'Requesting permission to access profile data...', duration: 1800 },
+                { title: 'Fetching Profile Data', description: 'Retrieving profile information...', duration: 2200 },
+                { title: 'Validating Profile', description: 'Cross-referencing profile details...', duration: 1500 },
+                { title: 'Verifying Identity', description: 'Matching identity anchor with profile...', duration: 2000 }
+            ]
+        },
+        'GitHub': {
+            logo: '💻',
+            color: 'github',
+            steps: [
+                { title: 'Redirecting to GitHub', description: 'Opening OAuth authorization page...', duration: 1500 },
+                { title: 'Authenticating User', description: 'Verifying credentials with GitHub...', duration: 2000 },
+                { title: 'Requesting Profile Access', description: 'Requesting permission to access profile data...', duration: 1800 },
+                { title: 'Fetching Profile Data', description: 'Retrieving repository and profile data...', duration: 2500 },
+                { title: 'Validating Profile', description: 'Cross-referencing profile details...', duration: 1500 },
+                { title: 'Verifying Identity', description: 'Matching identity anchor with profile...', duration: 2000 }
+            ]
+        }
+    },
+
+    async simulateVerification(platform, anchorId, profileUrl) {
+        const config = this.platformConfigs[platform] || this.platformConfigs['Instagram'];
+        const modal = document.getElementById('oauthModal');
+        const stepsContainer = document.getElementById('verificationSteps');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const oauthHeader = document.getElementById('oauthHeader');
+        const oauthLogo = document.getElementById('oauthLogo');
+        const oauthTitle = document.getElementById('oauthTitle');
+        const statusDiv = document.getElementById('verificationStatus');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Setup modal
+        oauthHeader.className = `oauth-header ${config.color}`;
+        oauthLogo.textContent = config.logo;
+        oauthTitle.textContent = `Connecting to ${platform}`;
+        statusDiv.style.display = 'none';
+        stepsContainer.innerHTML = '';
+        stepsContainer.style.display = 'block';
+        progressFill.style.width = '0%';
+
+        // Create step elements
+        config.steps.forEach((step, index) => {
+            const stepEl = document.createElement('div');
+            stepEl.className = 'verification-step';
+            stepEl.id = `step-${index}`;
+            stepEl.innerHTML = `
+                <div class="step-icon">${index + 1}</div>
+                <div class="step-content">
+                    <div class="step-title">${step.title}</div>
+                    <div class="step-description">${step.description}</div>
+                </div>
+            `;
+            stepsContainer.appendChild(stepEl);
+        });
+
+        // Show modal
+        modal.classList.add('active');
+
+        // Simulate steps with delays
+        let totalDuration = 0;
+        const successRate = 0.85; // 85% success rate for realism
+        const isSuccess = Math.random() > (1 - successRate);
+
+        for (let i = 0; i < config.steps.length; i++) {
+            const step = config.steps[i];
+            const stepEl = document.getElementById(`step-${i}`);
+            
+            // Activate current step
+            stepEl.classList.add('active');
+            progressText.textContent = step.description;
+            
+            // Wait for step duration
+            await this.delay(step.duration);
+            
+            // Update progress
+            totalDuration += step.duration;
+            const progress = ((i + 1) / config.steps.length) * 100;
+            progressFill.style.width = `${progress}%`;
+            
+            // Complete step
+            stepEl.classList.remove('active');
+            
+            // Check for failure (only on last step for dramatic effect)
+            if (i === config.steps.length - 1 && !isSuccess) {
+                stepEl.classList.add('failed');
+                break;
+            } else {
+                stepEl.classList.add('completed');
+            }
+        }
+
+        // Final delay before showing result
+        await this.delay(500);
+
+        // Show result
+        stepsContainer.style.display = 'none';
+        statusDiv.style.display = 'block';
+        document.getElementById('oauthCloseBtn').style.display = 'block';
+
+        if (isSuccess) {
+            statusIcon.className = 'status-icon success';
+            statusIcon.textContent = '✓';
+            statusTitle.textContent = 'Verification Successful!';
+            statusMessage.textContent = `Your ${platform} profile has been successfully verified and linked to Identity Anchor #${anchorId}.`;
+            statusTitle.style.color = '#28a745';
+        } else {
+            statusIcon.className = 'status-icon failure';
+            statusIcon.textContent = '✕';
+            statusTitle.textContent = 'Verification Failed';
+            statusMessage.textContent = `Unable to verify ${platform} profile. Please check your credentials and try again.`;
+            statusTitle.style.color = '#dc3545';
+        }
+
+        // Auto-close after delay
+        await this.delay(3000);
+        this.closeModal();
+
+        return isSuccess;
+    },
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    closeModal() {
+        const modal = document.getElementById('oauthModal');
+        modal.classList.remove('active');
+        
+        // Reset progress
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('verificationSteps').style.display = 'block';
+        document.getElementById('verificationStatus').style.display = 'none';
+        document.getElementById('oauthCloseBtn').style.display = 'none';
+    }
+};
+
+// Close modal on outside click
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('oauthModal');
+    if (e.target === modal) {
+        oauthSimulator.closeModal();
+    }
+});
+
 async function loadStatistics() {
     try {
         const data = await api.getStatistics();
@@ -102,24 +294,41 @@ async function viewTrustHistory(anchorId) {
 async function addVerification(event) {
     event.preventDefault();
     
-    const data = {
-        anchor_id: document.getElementById('verifyAnchorId').value,
-        platform_name: document.getElementById('verifyPlatform').value,
-        profile_url: document.getElementById('verifyUrl').value
-    };
+    const anchorId = document.getElementById('verifyAnchorId').value;
+    const platform = document.getElementById('verifyPlatform').value;
+    const profileUrl = document.getElementById('verifyUrl').value;
 
-    try {
-        const result = await api.addVerification(data);
-        if (result.success) {
-            ui.showMessage('verificationMessage', 'Verification added successfully!', 'success');
-            event.target.reset();
-            loadVerifications();
-            loadStatistics();
-        } else {
-            ui.showMessage('verificationMessage', 'Error: ' + result.error, 'error');
+    if (!anchorId || !platform || !profileUrl) {
+        ui.showMessage('verificationMessage', 'Please fill in all fields', 'error');
+        return;
+    }
+
+    // Show OAuth simulation
+    const isSuccess = await oauthSimulator.simulateVerification(platform, anchorId, profileUrl);
+
+    // Only proceed with API call if simulation was successful
+    if (isSuccess) {
+        const data = {
+            anchor_id: anchorId,
+            platform_name: platform,
+            profile_url: profileUrl
+        };
+
+        try {
+            const result = await api.addVerification(data);
+            if (result.success) {
+                ui.showMessage('verificationMessage', 'Verification added successfully!', 'success');
+                event.target.reset();
+                loadVerifications();
+                loadStatistics();
+            } else {
+                ui.showMessage('verificationMessage', 'Error: ' + result.error, 'error');
+            }
+        } catch (error) {
+            ui.showMessage('verificationMessage', 'Error adding verification', 'error');
         }
-    } catch (error) {
-        ui.showMessage('verificationMessage', 'Error adding verification', 'error');
+    } else {
+        ui.showMessage('verificationMessage', 'Verification failed. Please try again.', 'error');
     }
 }
 
@@ -327,24 +536,41 @@ async function viewTrustHistory(anchorId) {
 async function addVerification(event) {
     event.preventDefault();
     
-    const data = {
-        anchor_id: document.getElementById('verifyAnchorId').value,
-        platform_name: document.getElementById('verifyPlatform').value,
-        profile_url: document.getElementById('verifyUrl').value
-    };
+    const anchorId = document.getElementById('verifyAnchorId').value;
+    const platform = document.getElementById('verifyPlatform').value;
+    const profileUrl = document.getElementById('verifyUrl').value;
 
-    try {
-        const result = await api.addVerification(data);
-        if (result.success) {
-            ui.showMessage('verificationMessage', 'Verification added successfully!', 'success');
-            event.target.reset();
-            loadVerifications();
-            loadStatistics();
-        } else {
-            ui.showMessage('verificationMessage', 'Error: ' + result.error, 'error');
+    if (!anchorId || !platform || !profileUrl) {
+        ui.showMessage('verificationMessage', 'Please fill in all fields', 'error');
+        return;
+    }
+
+    // Show OAuth simulation
+    const isSuccess = await oauthSimulator.simulateVerification(platform, anchorId, profileUrl);
+
+    // Only proceed with API call if simulation was successful
+    if (isSuccess) {
+        const data = {
+            anchor_id: anchorId,
+            platform_name: platform,
+            profile_url: profileUrl
+        };
+
+        try {
+            const result = await api.addVerification(data);
+            if (result.success) {
+                ui.showMessage('verificationMessage', 'Verification added successfully!', 'success');
+                event.target.reset();
+                loadVerifications();
+                loadStatistics();
+            } else {
+                ui.showMessage('verificationMessage', 'Error: ' + result.error, 'error');
+            }
+        } catch (error) {
+            ui.showMessage('verificationMessage', 'Error adding verification', 'error');
         }
-    } catch (error) {
-        ui.showMessage('verificationMessage', 'Error adding verification', 'error');
+    } else {
+        ui.showMessage('verificationMessage', 'Verification failed. Please try again.', 'error');
     }
 }
 
