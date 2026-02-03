@@ -233,60 +233,74 @@ async function loadIdentities() {
 
 async function viewIdentity(anchorId) {
     try {
+        console.log('Viewing identity:', anchorId);
         const data = await api.getIdentityDetails(anchorId);
         if (data.success) {
             const { identity, verifications, events } = data;
             
             let msg = `=== IDENTITY DETAILS ===\n\n`;
             msg += `Anchor ID: ${identity.anchor_id}\n`;
-            msg += `Public Key: ${identity.user_pub_key.substring(0, 50)}...\n`;
+            msg += `Public Key: ${identity.user_pub_key ? identity.user_pub_key.substring(0, 50) + '...' : 'N/A'}\n`;
             msg += `Trust Score: ${identity.trust_score}\n`;
             msg += `Created: ${ui.formatDate(identity.created_at)}\n\n`;
             
-            msg += `--- VERIFICATIONS (${verifications.length}) ---\n`;
-            verifications.forEach((v, i) => {
-                msg += `${i+1}. ${v.platform_name}: ${v.profile_url}\n`;
-            });
+            msg += `--- VERIFICATIONS (${verifications ? verifications.length : 0}) ---\n`;
+            if (verifications && verifications.length > 0) {
+                verifications.forEach((v, i) => {
+                    msg += `${i+1}. ${v.platform_name}: ${v.profile_url}\n`;
+                });
+            } else {
+                msg += 'No verifications found.\n';
+            }
             
-            msg += `\n--- EVENTS (${events.length}) ---\n`;
-            events.slice(0, 5).forEach((e, i) => {
-                msg += `${i+1}. ${e.event_type} on ${e.platform || 'N/A'}\n`;
-            });
+            msg += `\n--- EVENTS (${events ? events.length : 0}) ---\n`;
+            if (events && events.length > 0) {
+                events.slice(0, 5).forEach((e, i) => {
+                    msg += `${i+1}. ${e.event_type} on ${e.platform || 'N/A'}\n`;
+                });
+            } else {
+                msg += 'No events found.\n';
+            }
             
             alert(msg);
         } else {
-            alert('Error: ' + data.error);
+            alert('Error: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
-        alert('Error loading identity details');
+        console.error('Error loading identity details:', error);
+        alert('Error loading identity details: ' + error.message);
     }
 }
 
 async function exportIdentity(anchorId) {
     try {
+        console.log('Exporting identity:', anchorId);
         const data = await api.exportIdentity(anchorId);
         if (data.success) {
             const filename = `identity_${anchorId}_export_${new Date().toISOString().split('T')[0]}.json`;
             ui.downloadJSON(data.data, filename);
-            ui.showMessage('identityMessage', `âœ… Identity ${anchorId} exported successfully!`, 'success');
+            ui.showMessage('identityMessage', `✓ Identity ${anchorId} exported successfully!`, 'success');
         } else {
-            alert('Error exporting: ' + data.error);
+            alert('Error exporting: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
-        alert('Error exporting identity');
+        console.error('Error exporting identity:', error);
+        alert('Error exporting identity: ' + error.message);
     }
 }
 
 async function viewTrustHistory(anchorId) {
     try {
+        console.log('Loading trust history for identity:', anchorId);
         const data = await api.getTrustHistory(anchorId);
         if (data.success) {
-            displayTrustHistory(anchorId, data.history, data.current_score);
+            displayTrustHistory(anchorId, data.history || [], data.current_score || 0);
         } else {
-            alert('Error: ' + data.error);
+            alert('Error: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
-        alert('Error loading trust history');
+        console.error('Error loading trust history:', error);
+        alert('Error loading trust history: ' + error.message);
     }
 }
 
@@ -345,10 +359,19 @@ async function loadVerifications() {
 async function runConsistencyCheck(event) {
     event.preventDefault();
     
+    const userGroup = document.getElementById('userGroup').value.trim();
+    const platformA = document.getElementById('platformA').value;
+    const platformB = document.getElementById('platformB').value;
+
+    if (!userGroup || !platformA || !platformB) {
+        ui.showMessage('consistencyMessage', 'Please fill in all fields', 'error');
+        return;
+    }
+
     const data = {
-        user_group: document.getElementById('userGroup').value,
-        platform_a: document.getElementById('platformA').value,
-        platform_b: document.getElementById('platformB').value
+        user_group: userGroup,
+        platform_a: platformA,
+        platform_b: platformB
     };
 
     try {
@@ -359,10 +382,11 @@ async function runConsistencyCheck(event) {
             loadConsistencyChecks();
             loadStatistics();
         } else {
-            ui.showMessage('consistencyMessage', 'Error: ' + result.error, 'error');
+            ui.showMessage('consistencyMessage', 'Error: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (error) {
-        ui.showMessage('consistencyMessage', 'Error running check', 'error');
+        console.error('Consistency check error:', error);
+        ui.showMessage('consistencyMessage', 'Error running check: ' + error.message, 'error');
     }
 }
 
@@ -412,47 +436,6 @@ window.onclick = function(event) {
     }
 }
 
-// Statistics
-async function loadStatistics() {
-    try {
-        const data = await api.getStatistics();
-        if (data.success) {
-            const s = data.statistics;
-            document.getElementById('totalIdentities').textContent = s.total_identities;
-            document.getElementById('totalVerifications').textContent = s.total_verifications;
-            document.getElementById('avgTrustScore').textContent = s.avg_trust_score.toFixed(1);
-            document.getElementById('avgConsistency').textContent = s.avg_consistency_score.toFixed(1);
-        }
-    } catch (error) {
-        console.error('Error loading statistics:', error);
-    }
-}
-
-// Identity operations
-async function createIdentity() {
-    try {
-        const data = await api.createIdentity();
-        if (data.success) {
-            ui.showMessage('identityMessage', 'Identity created successfully!', 'success');
-            loadIdentities();
-            loadStatistics();
-        } else {
-            ui.showMessage('identityMessage', 'Error: ' + data.error, 'error');
-        }
-    } catch (error) {
-        ui.showMessage('identityMessage', 'Error creating identity', 'error');
-    }
-}
-
-async function loadIdentities() {
-    try {
-        const data = await api.getIdentities();
-        if (data.success) displayIdentities(data.identities);
-    } catch (error) {
-        console.error('Error loading identities:', error);
-    }
-}
-
 let searchTimeout;
 async function searchIdentities() {
     clearTimeout(searchTimeout);
@@ -471,185 +454,6 @@ async function searchIdentities() {
             console.error('Error searching identities:', error);
         }
     }, 300);
-}
-
-async function viewIdentity(anchorId) {
-    try {
-        const data = await api.getIdentityDetails(anchorId);
-        if (data.success) {
-            const { identity, verifications, events } = data;
-            
-            let msg = `=== IDENTITY DETAILS ===\n\n`;
-            msg += `Anchor ID: ${identity.anchor_id}\n`;
-            msg += `Public Key: ${identity.user_pub_key.substring(0, 50)}...\n`;
-            msg += `Trust Score: ${identity.trust_score}\n`;
-            msg += `Created: ${ui.formatDate(identity.created_at)}\n\n`;
-            
-            msg += `--- VERIFICATIONS (${verifications.length}) ---\n`;
-            verifications.forEach((v, i) => {
-                msg += `${i+1}. ${v.platform_name}: ${v.profile_url}\n`;
-            });
-            
-            msg += `\n--- EVENTS (${events.length}) ---\n`;
-            events.slice(0, 5).forEach((e, i) => {
-                msg += `${i+1}. ${e.event_type} on ${e.platform || 'N/A'}\n`;
-            });
-            
-            alert(msg);
-        } else {
-            alert('Error: ' + data.error);
-        }
-    } catch (error) {
-        alert('Error loading identity details');
-    }
-}
-
-async function exportIdentity(anchorId) {
-    try {
-        const data = await api.exportIdentity(anchorId);
-        if (data.success) {
-            const filename = `identity_${anchorId}_export_${new Date().toISOString().split('T')[0]}.json`;
-            ui.downloadJSON(data.data, filename);
-            ui.showMessage('identityMessage', `âœ… Identity ${anchorId} exported successfully!`, 'success');
-        } else {
-            alert('Error exporting: ' + data.error);
-        }
-    } catch (error) {
-        alert('Error exporting identity');
-    }
-}
-
-async function viewTrustHistory(anchorId) {
-    try {
-        const data = await api.getTrustHistory(anchorId);
-        if (data.success) {
-            displayTrustHistory(anchorId, data.history, data.current_score);
-        } else {
-            alert('Error: ' + data.error);
-        }
-    } catch (error) {
-        alert('Error loading trust history');
-    }
-}
-
-// Verification operations
-async function addVerification(event) {
-    event.preventDefault();
-    
-    const anchorId = document.getElementById('verifyAnchorId').value;
-    const platform = document.getElementById('verifyPlatform').value;
-    const profileUrl = document.getElementById('verifyUrl').value;
-
-    if (!anchorId || !platform || !profileUrl) {
-        ui.showMessage('verificationMessage', 'Please fill in all fields', 'error');
-        return;
-    }
-
-    // Show OAuth simulation
-    const isSuccess = await oauthSimulator.simulateVerification(platform, anchorId, profileUrl);
-
-    // Only proceed with API call if simulation was successful
-    if (isSuccess) {
-        const data = {
-            anchor_id: anchorId,
-            platform_name: platform,
-            profile_url: profileUrl
-        };
-
-        try {
-            const result = await api.addVerification(data);
-            if (result.success) {
-                ui.showMessage('verificationMessage', 'Verification added successfully!', 'success');
-                event.target.reset();
-                loadVerifications();
-                loadStatistics();
-            } else {
-                ui.showMessage('verificationMessage', 'Error: ' + result.error, 'error');
-            }
-        } catch (error) {
-            ui.showMessage('verificationMessage', 'Error adding verification', 'error');
-        }
-    } else {
-        ui.showMessage('verificationMessage', 'Verification failed. Please try again.', 'error');
-    }
-}
-
-async function loadVerifications() {
-    try {
-        const data = await api.getVerifications();
-        if (data.success) displayVerifications(data.verifications);
-    } catch (error) {
-        console.error('Error loading verifications:', error);
-    }
-}
-
-// Consistency check operations
-async function runConsistencyCheck(event) {
-    event.preventDefault();
-    
-    const data = {
-        user_group: document.getElementById('userGroup').value,
-        platform_a: document.getElementById('platformA').value,
-        platform_b: document.getElementById('platformB').value
-    };
-
-    try {
-        const result = await api.runConsistencyCheck(data);
-        if (result.success) {
-            ui.showMessage('consistencyMessage', 'Consistency check completed!', 'success');
-            event.target.reset();
-            loadConsistencyChecks();
-            loadStatistics();
-        } else {
-            ui.showMessage('consistencyMessage', 'Error: ' + result.error, 'error');
-        }
-    } catch (error) {
-        ui.showMessage('consistencyMessage', 'Error running check', 'error');
-    }
-}
-
-async function loadConsistencyChecks() {
-    try {
-        const data = await api.getConsistencyChecks();
-        if (data.success) displayConsistencyChecks(data.checks);
-    } catch (error) {
-        console.error('Error loading consistency checks:', error);
-    }
-}
-
-// Reputation event operations
-async function logEvent(event) {
-    event.preventDefault();
-    
-    const data = {
-        anchor_id: document.getElementById('eventAnchorId').value,
-        event_type: document.getElementById('eventType').value,
-        platform: document.getElementById('eventPlatform').value,
-        score_impact: parseFloat(document.getElementById('scoreImpact').value)
-    };
-
-    try {
-        const result = await api.logEvent(data);
-        if (result.success) {
-            ui.showMessage('eventMessage', 'Event logged successfully!', 'success');
-            event.target.reset();
-            loadStatistics();
-        } else {
-            ui.showMessage('eventMessage', 'Error: ' + result.error, 'error');
-        }
-    } catch (error) {
-        ui.showMessage('eventMessage', 'Error logging event', 'error');
-    }
-}
-
-// Modal controls
-function closeHistoryModal() {
-    document.getElementById('historyModal').style.display = 'none';
-}
-
-window.onclick = function(event) {
-    const modal = document.getElementById('historyModal');
-    if (event.target == modal) modal.style.display = 'none';
 }
 
 // Initialize on page load
