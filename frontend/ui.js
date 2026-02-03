@@ -1,151 +1,102 @@
-// Show success or error message
-function showMessage(elementId, message, type) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-    
-    element.textContent = message;
-    element.className = `message ${type}`;
-    element.style.display = 'block';
-    
-    // Hide after 5 seconds
-    setTimeout(() => {
-        element.style.display = 'none';
-    }, 5000);
-}
+// UI helper functions
+const ui = {
+    showMessage(elementId, message, type = 'success') {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        el.textContent = message;
+        el.className = `message ${type}`;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 5000);
+    },
 
-// Color-coded trust score badge
-function getTrustBadge(score) {
-    let colorClass = 'score-low';
-    if (score >= 75) colorClass = 'score-high';
-    else if (score >= 50) colorClass = 'score-medium';
-    
-    return `<span class="trust-score ${colorClass}">${score}</span>`;
-}
+    trustBadge(score) {
+        const cls = score >= 75 ? 'score-high' : score >= 50 ? 'score-medium' : 'score-low';
+        return `<span class="trust-score ${cls}">${score}</span>`;
+    },
 
-// Format date to readable format
-function formatDate(dateString) {
-    return new Date(dateString).toLocaleString();
-}
+    formatDate(dateString) {
+        return new Date(dateString).toLocaleString();
+    },
 
-// Shorten long URLs
-function shortenUrl(url, maxLength) {
-    if (!maxLength) maxLength = 40;
-    if (url.length > maxLength) {
-        return url.substring(0, maxLength) + '...';
+    shortenUrl(url, max = 40) {
+        return url.length > max ? url.substring(0, max) + '...' : url;
+    },
+
+    downloadJSON(data, filename) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    },
+
+    showTab(tabName) {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        event.target.classList.add('active');
+        
+        if (tabName === 'identities') loadIdentities();
+        if (tabName === 'verifications') loadVerifications();
+        if (tabName === 'consistency') loadConsistencyChecks();
     }
-    return url;
-}
+};
 
-// Download data as JSON file
-function downloadJSON(data, filename) {
-    const jsonText = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonText], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    
-    URL.revokeObjectURL(url);
-}
-
-// Switch between tabs
-function showTab(tabName) {
-    // Hide all sections
-    const sections = document.querySelectorAll('.content-section');
-    sections.forEach(section => section.classList.remove('active'));
-    
-    // Remove active from all tabs
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(tab => tab.classList.remove('active'));
-    
-    // Show selected section
-    document.getElementById(tabName).classList.add('active');
-    event.target.classList.add('active');
-    
-    // Load data for the tab
-    if (tabName === 'identities') loadIdentities();
-    if (tabName === 'verifications') loadVerifications();
-    if (tabName === 'consistency') loadConsistencyChecks();
-}
-
-// Display identities in table
+// Display functions
 function displayIdentities(identities) {
-    const tableBody = document.querySelector('#identitiesTable tbody');
-    
-    const rows = identities.map(identity => {
-        const shortKey = identity.user_pub_key.substring(0, 40) + '...';
-        return `
-            <tr>
-                <td>${identity.anchor_id}</td>
-                <td>${shortKey}</td>
-                <td>${getTrustBadge(identity.trust_score)}</td>
-                <td>${formatDate(identity.created_at)}</td>
-                <td class="action-buttons">
-                    <button onclick="viewIdentity(${identity.anchor_id})">View</button>
-                    <button onclick="exportIdentity(${identity.anchor_id})">Export</button>
-                    <button onclick="viewTrustHistory(${identity.anchor_id})">History</button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tableBody.innerHTML = rows.join('');
+    const tbody = document.querySelector('#identitiesTable tbody');
+    tbody.innerHTML = identities.map(id => `
+        <tr>
+            <td>${id.anchor_id}</td>
+            <td>${id.user_pub_key.substring(0, 40)}...</td>
+            <td>${ui.trustBadge(id.trust_score)}</td>
+            <td>${ui.formatDate(id.created_at)}</td>
+            <td class="action-buttons">
+                <button onclick="viewIdentity(${id.anchor_id})">View</button>
+                <button onclick="exportIdentity(${id.anchor_id})">Export</button>
+                <button onclick="viewTrustHistory(${id.anchor_id})">History</button>
+            </td>
+        </tr>
+    `).join('');
 }
 
-// Display verifications in table
 function displayVerifications(verifications) {
-    const tableBody = document.querySelector('#verificationsTable tbody');
-    
-    const rows = verifications.map(v => `
+    const tbody = document.querySelector('#verificationsTable tbody');
+    tbody.innerHTML = verifications.map(v => `
         <tr>
             <td>${v.verification_id}</td>
             <td>${v.anchor_id}</td>
             <td>${v.platform_name}</td>
-            <td><a href="${v.profile_url}" target="_blank">${shortenUrl(v.profile_url)}</a></td>
-            <td>${formatDate(v.verified_at)}</td>
-            <td>${getTrustBadge(v.trust_score)}</td>
+            <td><a href="${v.profile_url}" target="_blank">${ui.shortenUrl(v.profile_url)}</a></td>
+            <td>${ui.formatDate(v.verified_at)}</td>
+            <td>${ui.trustBadge(v.trust_score)}</td>
         </tr>
-    `);
-    
-    tableBody.innerHTML = rows.join('');
+    `).join('');
 }
 
-// Display consistency checks in table
 function displayConsistencyChecks(checks) {
-    const tableBody = document.querySelector('#consistencyTable tbody');
-    
-    const rows = checks.map(check => `
+    const tbody = document.querySelector('#consistencyTable tbody');
+    tbody.innerHTML = checks.map(c => `
         <tr>
-            <td>${check.check_id}</td>
-            <td>${check.user_group}</td>
-            <td>${check.platform_a}</td>
-            <td>${check.platform_b}</td>
-            <td>${getTrustBadge(check.consistency_score)}</td>
-            <td>${formatDate(check.checked_at)}</td>
+            <td>${c.check_id}</td>
+            <td>${c.user_group}</td>
+            <td>${c.platform_a}</td>
+            <td>${c.platform_b}</td>
+            <td>${ui.trustBadge(c.consistency_score)}</td>
+            <td>${ui.formatDate(c.checked_at)}</td>
         </tr>
-    `);
-    
-    tableBody.innerHTML = rows.join('');
+    `).join('');
 }
 
-// Display trust history in modal
 function displayTrustHistory(anchorId, history, currentScore) {
     const modal = document.getElementById('historyModal');
     const content = document.getElementById('historyContent');
     
-    const historyRows = history.map(event => `
-        <tr>
-            <td>${event.event_type}</td>
-            <td>${event.platform || 'N/A'}</td>
-            <td>${formatDate(event.time_stamp)}</td>
-        </tr>
-    `);
-    
     content.innerHTML = `
         <h3>Trust Score History - Identity #${anchorId}</h3>
-        <p><strong>Current Score:</strong> ${getTrustBadge(currentScore)}</p>
+        <p><strong>Current Score:</strong> ${ui.trustBadge(currentScore)}</p>
         <table>
             <thead>
                 <tr>
@@ -155,10 +106,15 @@ function displayTrustHistory(anchorId, history, currentScore) {
                 </tr>
             </thead>
             <tbody>
-                ${historyRows.join('')}
+                ${history.map(h => `
+                    <tr>
+                        <td>${h.event_type}</td>
+                        <td>${h.platform || 'N/A'}</td>
+                        <td>${ui.formatDate(h.time_stamp)}</td>
+                    </tr>
+                `).join('')}
             </tbody>
         </table>
     `;
-    
     modal.style.display = 'block';
 }

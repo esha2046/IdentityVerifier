@@ -1,45 +1,40 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+from config import DB_CONFIG
 
-def connect_db():
+def get_connection():
+    """Create database connection"""
     try:
-        conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT
-        )
-        return conn
+        return psycopg2.connect(**DB_CONFIG)
     except Exception as e:
-        print(f"Connection error: {e}")
+        print(f"DB Error: {e}")
         return None
 
-def run_query(query, params=None):
-    conn = connect_db()
+def execute_query(query, params=None, fetchone=False, commit=False):
+    """Execute a query and return results"""
+    conn = get_connection()
     if not conn:
-        return None, "Connection failed"
+        return None, "Database connection failed"
     
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(query, params)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(query, params)
         
-        # Check if we need to return data or just commit
-        if query.strip().upper().startswith('SELECT') or 'RETURNING' in query.upper():
-            if 'LIMIT 1' in query.upper() or query.count('WHERE') == 1 and 'anchor_id = %s' in query:
-                result = cursor.fetchone()
-            else:
-                result = cursor.fetchall()
-        else:
+        result = None
+        if fetchone:
+            result = cur.fetchone()
+        elif not commit:
+            result = cur.fetchall()
+        
+        if commit:
             conn.commit()
-            result = cursor.fetchone() if 'RETURNING' in query.upper() else None
+            if not result:
+                result = cur.fetchone() if 'RETURNING' in query else None
         
-        cursor.close()
+        cur.close()
         conn.close()
         return result, None
-        
     except Exception as e:
-        conn.rollback()
-        conn.close()
+        if conn:
+            conn.rollback()
         return None, str(e)
