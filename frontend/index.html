@@ -68,6 +68,7 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+                <div id="identitiesPagination"></div>
             </div>
         </div>
 
@@ -115,6 +116,7 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+                <div id="verificationsPagination"></div>
             </div>
         </div>
 
@@ -169,6 +171,7 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+                <div id="consistencyPagination"></div>
             </div>
         </div>
 
@@ -214,6 +217,15 @@
             <span class="close" onclick="closeHistoryModal()">&times;</span>
             <h2>Trust Score History</h2>
             <div id="historyContent"></div>
+        </div>
+    </div>
+
+    <!-- Identity Details Modal -->
+    <div id="identityDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeIdentityModal()">&times;</span>
+            <h2>Identity Details</h2>
+            <div id="identityDetailsContent"></div>
         </div>
     </div>
 

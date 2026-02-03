@@ -222,54 +222,107 @@ async function createIdentity() {
 }
 
 async function loadIdentities() {
+    const tbody = document.querySelector('#identitiesTable tbody');
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-row"><div class="loading-spinner"></div> Loading identities...</td></tr>';
+    
     try {
         const data = await api.getIdentities();
-        if (data.success) displayIdentities(data.identities);
+        if (data.success) {
+            displayIdentities(data.identities);
+        } else {
+            tbody.innerHTML = `<tr><td colspan="5" class="no-data">Error loading identities: ${data.error || 'Unknown error'}</td></tr>`;
+        }
     } catch (error) {
         console.error('Error loading identities:', error);
+        tbody.innerHTML = `<tr><td colspan="5" class="no-data">Error loading identities: ${error.message}</td></tr>`;
     }
 }
 
 
 async function viewIdentity(anchorId) {
+    const modal = document.getElementById('identityDetailsModal');
+    const content = document.getElementById('identityDetailsContent');
+    
+    // Show loading
+    content.innerHTML = '<div class="loading-spinner"></div><p>Loading identity details...</p>';
+    modal.style.display = 'block';
+    
     try {
         console.log('Viewing identity:', anchorId);
         const data = await api.getIdentityDetails(anchorId);
         if (data.success) {
             const { identity, verifications, events } = data;
             
-            let msg = `=== IDENTITY DETAILS ===\n\n`;
-            msg += `Anchor ID: ${identity.anchor_id}\n`;
-            msg += `Public Key: ${identity.user_pub_key ? identity.user_pub_key.substring(0, 50) + '...' : 'N/A'}\n`;
-            msg += `Trust Score: ${identity.trust_score}\n`;
-            msg += `Created: ${ui.formatDate(identity.created_at)}\n\n`;
+            const verificationsHtml = verifications && verifications.length > 0
+                ? verifications.map((v, i) => `
+                    <div class="verification-item">
+                        <span class="platform-badge">
+                            <span class="platform-icon">${ui.platformIcon(v.platform_name)}</span>
+                            ${v.platform_name}
+                        </span>
+                        <a href="${v.profile_url}" target="_blank">${ui.shortenUrl(v.profile_url, 50)}</a>
+                    </div>
+                `).join('')
+                : '<p class="no-data">No verifications found.</p>';
             
-            msg += `--- VERIFICATIONS (${verifications ? verifications.length : 0}) ---\n`;
-            if (verifications && verifications.length > 0) {
-                verifications.forEach((v, i) => {
-                    msg += `${i+1}. ${v.platform_name}: ${v.profile_url}\n`;
-                });
-            } else {
-                msg += 'No verifications found.\n';
-            }
+            const eventsHtml = events && events.length > 0
+                ? events.slice(0, 10).map((e, i) => `
+                    <div class="event-item">
+                        <span class="event-type">${e.event_type}</span>
+                        <span class="event-platform">${e.platform || 'N/A'}</span>
+                        <span class="event-time">${ui.relativeTime(e.time_stamp || e.created_at || new Date())}</span>
+                    </div>
+                `).join('')
+                : '<p class="no-data">No events found.</p>';
             
-            msg += `\n--- EVENTS (${events ? events.length : 0}) ---\n`;
-            if (events && events.length > 0) {
-                events.slice(0, 5).forEach((e, i) => {
-                    msg += `${i+1}. ${e.event_type} on ${e.platform || 'N/A'}\n`;
-                });
-            } else {
-                msg += 'No events found.\n';
-            }
-            
-            alert(msg);
+            content.innerHTML = `
+                <div class="identity-details">
+                    <div class="detail-section">
+                        <h3>Basic Information</h3>
+                        <div class="detail-row">
+                            <strong>Anchor ID:</strong> <span>${identity.anchor_id}</span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Public Key:</strong> 
+                            <span class="copyable-key" onclick="ui.copyToClipboard('${identity.user_pub_key}', 'Public key copied!')" title="Click to copy">
+                                ${identity.user_pub_key ? identity.user_pub_key.substring(0, 60) + '...' : 'N/A'}
+                                <span class="copy-icon">📋</span>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Trust Score:</strong> ${ui.trustBadge(identity.trust_score)}
+                        </div>
+                        <div class="detail-row">
+                            <strong>Created:</strong> <span title="${ui.formatDate(identity.created_at)}">${ui.relativeTime(identity.created_at)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>Platform Verifications (${verifications ? verifications.length : 0})</h3>
+                        <div class="verifications-list">
+                            ${verificationsHtml}
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>Recent Events (${events ? events.length : 0})</h3>
+                        <div class="events-list">
+                            ${eventsHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
         } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
+            content.innerHTML = `<p class="error-message">Error: ${data.error || 'Unknown error'}</p>`;
         }
     } catch (error) {
         console.error('Error loading identity details:', error);
-        alert('Error loading identity details: ' + error.message);
+        content.innerHTML = `<p class="error-message">Error loading identity details: ${error.message}</p>`;
     }
+}
+
+function closeIdentityModal() {
+    document.getElementById('identityDetailsModal').style.display = 'none';
 }
 
 async function exportIdentity(anchorId) {
@@ -347,11 +400,19 @@ async function addVerification(event) {
 }
 
 async function loadVerifications() {
+    const tbody = document.querySelector('#verificationsTable tbody');
+    tbody.innerHTML = '<tr><td colspan="6" class="loading-row"><div class="loading-spinner"></div> Loading verifications...</td></tr>';
+    
     try {
         const data = await api.getVerifications();
-        if (data.success) displayVerifications(data.verifications);
+        if (data.success) {
+            displayVerifications(data.verifications);
+        } else {
+            tbody.innerHTML = `<tr><td colspan="6" class="no-data">Error loading verifications: ${data.error || 'Unknown error'}</td></tr>`;
+        }
     } catch (error) {
         console.error('Error loading verifications:', error);
+        tbody.innerHTML = `<tr><td colspan="6" class="no-data">Error loading verifications: ${error.message}</td></tr>`;
     }
 }
 
@@ -391,11 +452,19 @@ async function runConsistencyCheck(event) {
 }
 
 async function loadConsistencyChecks() {
+    const tbody = document.querySelector('#consistencyTable tbody');
+    tbody.innerHTML = '<tr><td colspan="6" class="loading-row"><div class="loading-spinner"></div> Loading consistency checks...</td></tr>';
+    
     try {
         const data = await api.getConsistencyChecks();
-        if (data.success) displayConsistencyChecks(data.checks);
+        if (data.success) {
+            displayConsistencyChecks(data.checks);
+        } else {
+            tbody.innerHTML = `<tr><td colspan="6" class="no-data">Error loading checks: ${data.error || 'Unknown error'}</td></tr>`;
+        }
     } catch (error) {
         console.error('Error loading consistency checks:', error);
+        tbody.innerHTML = `<tr><td colspan="6" class="no-data">Error loading checks: ${error.message}</td></tr>`;
     }
 }
 
@@ -430,9 +499,13 @@ function closeHistoryModal() {
 }
 
 window.onclick = function(event) {
-    const modal = document.getElementById('historyModal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
+    const historyModal = document.getElementById('historyModal');
+    const identityModal = document.getElementById('identityDetailsModal');
+    if (event.target == historyModal) {
+        historyModal.style.display = 'none';
+    }
+    if (event.target == identityModal) {
+        identityModal.style.display = 'none';
     }
 }
 
