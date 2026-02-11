@@ -106,7 +106,7 @@ const oauthSimulator = {
 
         // Simulate steps with delays
         let totalDuration = 0;
-        const successRate = 0.85; // 85% success rate for realism
+        const successRate = 1.0; // 85% success rate for realism
         const isSuccess = Math.random() > (1 - successRate);
 
         for (let i = 0; i < config.steps.length; i++) {

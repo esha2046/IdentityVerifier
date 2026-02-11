@@ -186,6 +186,9 @@ class ConsistencyCheck:
         if platform_a == platform_b:
             return None, "Platforms must be different"
         
+        # Calculate score with parameters
+        score = calc_consistency_score(identity_anchor, platform_a, platform_b)
+        
         query = """
             INSERT INTO consistency_checks 
             (user_group, platform_a, platform_b, consistency_score)
@@ -195,15 +198,20 @@ class ConsistencyCheck:
         """
         return execute_query(
             query,
-            (identity_anchor, platform_a, platform_b, calc_consistency_score()),
+            (identity_anchor, platform_a, platform_b, score),
             fetchone=True,
             commit=True
         )
     
     @staticmethod
     def get_all():
-        """Get all checks"""
-        query = "SELECT * FROM consistency_checks ORDER BY checked_at DESC"
+        """Get all consistency checks"""
+        query = """
+            SELECT check_id, user_group, platform_a, platform_b, 
+                   consistency_score, checked_at
+            FROM consistency_checks
+            ORDER BY checked_at DESC
+        """
         return execute_query(query)
 
 
