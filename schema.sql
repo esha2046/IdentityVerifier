@@ -30,7 +30,7 @@ CREATE TABLE platform_verifications (
 -- Create consistency_checks table
 CREATE TABLE consistency_checks (
     check_id SERIAL PRIMARY KEY,
-    identity_anchor VARCHAR(100),
+    user_group VARCHAR(100),
     platform_a VARCHAR(100) NOT NULL,
     platform_b VARCHAR(100) NOT NULL,
     consistency_score DECIMAL(5,2) CHECK (consistency_score >= 0 AND consistency_score <= 100),
@@ -74,7 +74,7 @@ INSERT INTO reputation_events (anchor_id, event_type, platform, score_impact) VA
 (2, 'successful_verification', 'Instagram', 5.00),
 (2, 'successful_verification', 'LinkedIn', 5.00);
 
-INSERT INTO consistency_checks (identity_anchor, platform_a, platform_b, consistency_score) VALUES
+INSERT INTO consistency_checks (user_group, platform_a, platform_b, consistency_score) VALUES
 ('group_user1', 'Instagram', 'LinkedIn', 88.50),
 ('group_user1', 'Instagram', 'X', 75.20),
 ('group_user1', 'LinkedIn', 'X', 79.30),

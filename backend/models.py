@@ -188,9 +188,9 @@ class ConsistencyCheck:
         
         query = """
             INSERT INTO consistency_checks 
-            (identity_anchor, platform_a, platform_b, consistency_score)
+            (user_group, platform_a, platform_b, consistency_score)
             VALUES (%s, %s, %s, %s)
-            RETURNING check_id, identity_anchor, platform_a, platform_b, 
+            RETURNING check_id, user_group, platform_a, platform_b, 
                       consistency_score, checked_at
         """
         return execute_query(

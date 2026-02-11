@@ -269,7 +269,7 @@ function displayConsistencyChecks(checks, page = 1) {
     tbody.innerHTML = pagination.data.map(c => `
         <tr>
             <td>${c.check_id}</td>
-            <td>${c.identity_anchor}</td>
+            <td>${c.user_group}</td>
             <td>
                 <span class="platform-badge">
                     <span class="platform-icon">${ui.platformIcon(c.platform_a)}</span>
