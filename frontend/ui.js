@@ -11,9 +11,13 @@ const ui = {
 
     trustBadge(score) {
         const cls = score >= 75 ? 'score-high' : score >= 50 ? 'score-medium' : 'score-low';
-        const tooltip = score >= 75 ? 'High trust score (75-100)' : 
-                       score >= 50 ? 'Medium trust score (50-74)' : 
-                       'Low trust score (0-49)';
+        const tooltip = 'How reliable this identity anchor is, based on successful verifications and events.';
+        return `<span class="trust-score ${cls}" title="${tooltip}">${score}</span>`;
+    },
+
+    consistencyBadge(score) {
+        const cls = score >= 75 ? 'score-high' : score >= 50 ? 'score-medium' : 'score-low';
+        const tooltip = 'How similar this identity looks across the two selected platforms.';
         return `<span class="trust-score ${cls}" title="${tooltip}">${score}</span>`;
     },
 
@@ -265,7 +269,7 @@ function displayConsistencyChecks(checks, page = 1) {
     tbody.innerHTML = pagination.data.map(c => `
         <tr>
             <td>${c.check_id}</td>
-            <td>${c.user_group}</td>
+            <td>${c.identity_anchor}</td>
             <td>
                 <span class="platform-badge">
                     <span class="platform-icon">${ui.platformIcon(c.platform_a)}</span>
@@ -278,7 +282,7 @@ function displayConsistencyChecks(checks, page = 1) {
                     ${c.platform_b}
                 </span>
             </td>
-            <td>${ui.trustBadge(c.consistency_score)}</td>
+            <td>${ui.consistencyBadge(c.consistency_score)}</td>
             <td title="${ui.formatDate(c.checked_at)}">${ui.relativeTime(c.checked_at)}</td>
         </tr>
     `).join('');

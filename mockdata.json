@@ -116,7 +116,7 @@
   "consistency_checks": [
     {
       "check_id": 1,
-      "user_group": "user_1",
+      "identity_anchor": "user_1",
       "platform_a": "Instagram",
       "platform_b": "LinkedIn",
       "consistency_score": 90,
@@ -124,7 +124,7 @@
     },
     {
       "check_id": 2,
-      "user_group": "user_2",
+      "identity_anchor": "user_2",
       "platform_a": "X",
       "platform_b": "GitHub",
       "consistency_score": 75,
@@ -132,7 +132,7 @@
     },
     {
       "check_id": 3,
-      "user_group": "user_3",
+      "identity_anchor": "user_3",
       "platform_a": "Facebook",
       "platform_b": "Instagram",
       "consistency_score": 65,

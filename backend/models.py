@@ -181,21 +181,21 @@ class ConsistencyCheck:
     """Consistency Check model"""
     
     @staticmethod
-    def create(user_group, platform_a, platform_b):
+    def create(identity_anchor, platform_a, platform_b):
         """Create consistency check"""
         if platform_a == platform_b:
             return None, "Platforms must be different"
         
         query = """
             INSERT INTO consistency_checks 
-            (user_group, platform_a, platform_b, consistency_score)
+            (identity_anchor, platform_a, platform_b, consistency_score)
             VALUES (%s, %s, %s, %s)
-            RETURNING check_id, user_group, platform_a, platform_b, 
+            RETURNING check_id, identity_anchor, platform_a, platform_b, 
                       consistency_score, checked_at
         """
         return execute_query(
             query,
-            (user_group, platform_a, platform_b, calc_consistency_score()),
+            (identity_anchor, platform_a, platform_b, calc_consistency_score()),
             fetchone=True,
             commit=True
         )

@@ -229,6 +229,22 @@ async function loadIdentities() {
         const data = await api.getIdentities();
         if (data.success) {
             displayIdentities(data.identities);
+
+            // Also populate the Consistency Check anchor selector so users must pick a real identity
+            const select = document.getElementById('consistencyAnchorId');
+            if (select) {
+                const previousValue = select.value;
+                select.innerHTML = '<option value=\"\">Select Anchor</option>' +
+                    data.identities.map(id => `
+                        <option value="${id.anchor_id}">
+                            #${id.anchor_id} - ${id.user_pub_key.substring(0, 24)}...
+                        </option>
+                    `).join('');
+                // Preserve selection if it still exists
+                if (previousValue && data.identities.some(id => String(id.anchor_id) === previousValue)) {
+                    select.value = previousValue;
+                }
+            }
         } else {
             tbody.innerHTML = `<tr><td colspan="5" class="no-data">Error loading identities: ${data.error || 'Unknown error'}</td></tr>`;
         }
@@ -420,17 +436,17 @@ async function loadVerifications() {
 async function runConsistencyCheck(event) {
     event.preventDefault();
     
-    const userGroup = document.getElementById('userGroup').value.trim();
+    const anchorId = document.getElementById('consistencyAnchorId').value;
     const platformA = document.getElementById('platformA').value;
     const platformB = document.getElementById('platformB').value;
 
-    if (!userGroup || !platformA || !platformB) {
+    if (!anchorId || !platformA || !platformB) {
         ui.showMessage('consistencyMessage', 'Please fill in all fields', 'error');
         return;
     }
 
     const data = {
-        user_group: userGroup,
+        identity_anchor: anchorId,
         platform_a: platformA,
         platform_b: platformB
     };

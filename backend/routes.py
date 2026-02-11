@@ -106,14 +106,14 @@ def get_verifications():
 # Consistency check operations
 def run_consistency_check():
     data = request.get_json()
-    user_group = data.get('user_group')
+    identity_anchor = data.get('identity_anchor')
     platform_a = data.get('platform_a')
     platform_b = data.get('platform_b')
     
-    if not all([user_group, platform_a, platform_b]):
-        return error_response('Missing required fields: user_group, platform_a, platform_b')
+    if not all([identity_anchor, platform_a, platform_b]):
+        return error_response('Missing required fields: identity_anchor, platform_a, platform_b')
     
-    check, error = ConsistencyCheck.create(user_group, platform_a, platform_b)
+    check, error = ConsistencyCheck.create(identity_anchor, platform_a, platform_b)
     if error:
         return error_response(error, 500)
     

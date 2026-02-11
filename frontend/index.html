@@ -25,11 +25,11 @@
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="avgTrustScore">0</div>
-                <div class="stat-label">Avg Trust Score</div>
+                <div class="stat-label" title="How reliable this identity anchor is, based on successful verifications and events.">Avg Trust Score</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="avgConsistency">0</div>
-                <div class="stat-label">Avg Consistency</div>
+                <div class="stat-label" title="How similar this identity looks across the two selected platforms.">Avg Consistency</div>
             </div>
         </div>
 
@@ -61,7 +61,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Public Key</th>
-                            <th>Trust Score</th>
+                            <th title="How reliable this identity anchor is, based on successful verifications and events.">Trust Score</th>
                             <th>Created At</th>
                             <th>Actions</th>
                         </tr>
@@ -126,8 +126,11 @@
             <div class="message" id="consistencyMessage"></div>
             <form onsubmit="runConsistencyCheck(event)">
                 <div class="form-group">
-                    <label>User Group:</label>
-                    <input type="text" id="userGroup" placeholder="e.g., user_123" required>
+                    <label>Identity Anchor:</label>
+                    <select id="consistencyAnchorId" required>
+                        <option value="">Select Anchor</option>
+                    </select>
+                    <small class="help-text">Pick an existing Identity Anchor ID to compare across platforms.</small>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -162,10 +165,10 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>User Group</th>
+                            <th>Identity Anchor</th>
                             <th>Platform A</th>
                             <th>Platform B</th>
-                            <th>Consistency Score</th>
+                            <th title="How similar this identity looks across the two selected platforms.">Consistency Score</th>
                             <th>Checked At</th>
                         </tr>
                     </thead>
