@@ -9,8 +9,16 @@
 <body>
     <div class="container">
         <header>
-            <h1>Cross-Platform Digital Identity Verifier</h1>
-            <p class="subtitle">Decentralized Identity Verification System | DBMS Lab Project</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h1>Cross-Platform Digital Identity Verifier</h1>
+                    <p class="subtitle">Decentralized Identity Verification System | DBMS Lab Project</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span id="welcomeUser" style="font-size: 14px; color: #555;"></span>
+                    <button onclick="logout()" style="padding: 8px 16px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Logout</button>
+                </div>
+            </div>
         </header>
 
         <!-- Statistics Dashboard -->
@@ -91,6 +99,7 @@
                             <option value="X">X (Twitter)</option>
                             <option value="Facebook">Facebook</option>
                             <option value="GitHub">GitHub</option>
+                            <option value="Kaggle">Kaggle</option>
                         </select>
                     </div>
                 </div>
@@ -142,6 +151,7 @@
                             <option value="X">X (Twitter)</option>
                             <option value="Facebook">Facebook</option>
                             <option value="GitHub">GitHub</option>
+                            <option value="Kaggle">Kaggle</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -153,6 +163,7 @@
                             <option value="X">X (Twitter)</option>
                             <option value="Facebook">Facebook</option>
                             <option value="GitHub">GitHub</option>
+                            <option value="Kaggle">Kaggle</option>
                         </select>
                     </div>
                 </div>
@@ -211,6 +222,23 @@
                 </div>
                 <button type="submit">Log Event</button>
             </form>
+
+            <h2 style="margin-top: 40px;">Reputation Events History</h2>
+            <div class="table-container">
+                <table id="eventsTable">
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Identity Anchor</th>
+                            <th>Event Type</th>
+                            <th>Platform</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div id="eventsPagination"></div>
+            </div>
         </div>
     </div>
 
@@ -261,21 +289,39 @@
             </div>
         </div>
     </div>
-    <!-- Add this button somewhere in your index.html -->
-<button onclick="logout()">Logout</button>
+    <script>
+        // JWT auth check — runs before anything else loads
+        (function() {
+            const token = localStorage.getItem('jwt_token');
+            const expiry = localStorage.getItem('jwt_expiry');
+            if (!token || !expiry || new Date().getTime() > parseInt(expiry)) {
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('jwt_expiry');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        })();
 
-<script>
-function logout() {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('user');
-    window.location.href = 'login.html';
-}
+        function logout() {
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('jwt_expiry');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
 
-// Check if user is logged in (add this at the top of your script)
-if (localStorage.getItem('isLoggedIn') !== 'true') {
-    window.location.href = 'login.html';
-}
-</script>
+        function getToken() {
+            return localStorage.getItem('jwt_token');
+        }
+
+        // Show logged in username
+        const _user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (_user.username) {
+            document.addEventListener('DOMContentLoaded', () => {
+                const el = document.getElementById('welcomeUser');
+                if (el) el.textContent = `👤 ${_user.username}`;
+            });
+        }
+    </script>
 
     <!-- Load JavaScript files in correct order -->
     <script src="api.js"></script>

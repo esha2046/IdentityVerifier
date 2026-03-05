@@ -51,7 +51,8 @@ const ui = {
             'X': '🐦',
             'Twitter': '🐦',
             'Facebook': '👥',
-            'GitHub': '💻'
+            'GitHub': '💻',
+            'Kaggle': '🏆'
         };
         return icons[platform] || '🔗';
     },
@@ -110,6 +111,7 @@ const ui = {
         if (tabName === 'identities') loadIdentities();
         if (tabName === 'verifications') loadVerifications();
         if (tabName === 'consistency') loadConsistencyChecks();
+        if (tabName === 'events') loadEvents();
     },
 
     paginate(items, page = 1, perPage = 10) {
@@ -176,9 +178,11 @@ const ui = {
 let identitiesPage = 1;
 let verificationsPage = 1;
 let consistencyPage = 1;
+let eventsPage = 1;
 let allIdentities = [];
 let allVerifications = [];
 let allConsistencyChecks = [];
+let allEvents = [];
 
 // Display functions
 function displayIdentities(identities, page = 1) {
@@ -292,6 +296,42 @@ function displayConsistencyChecks(checks, page = 1) {
 
 function goToConsistencyPage(page) {
     displayConsistencyChecks(allConsistencyChecks, page);
+}
+
+function displayEvents(events, page = 1) {
+    const tbody = document.querySelector('#eventsTable tbody');
+    if (!events || events.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="no-data">No reputation events found yet.</td></tr>`;
+        document.getElementById('eventsPagination').innerHTML = '';
+        return;
+    }
+    
+    allEvents = events;
+    eventsPage = page;
+    const pagination = ui.paginate(events, page, 10);
+    
+    tbody.innerHTML = pagination.data.map(e => `
+        <tr>
+            <td>${e.event_id}</td>
+            <td>${e.anchor_id}</td>
+            <td>
+                <span class="event-type-badge" style="padding: 4px 8px; border-radius: 4px; background-color: ${e.event_type.includes('suspicious') ? '#ffcccc' : '#ccffcc'};">
+                    ${e.event_type.replace(/_/g, ' ')}
+                </span>
+            </td>
+            <td>
+                <span class="platform-icon">${ui.platformIcon(e.platform)}</span>
+                ${e.platform || 'N/A'}
+            </td>
+            <td title="${ui.formatDate(e.time_stamp)}">${ui.relativeTime(e.time_stamp)}</td>
+        </tr>
+    `).join('');
+    
+    ui.renderPagination('eventsPagination', pagination, 'goToEventsPage');
+}
+
+function goToEventsPage(page) {
+    displayEvents(allEvents, page);
 }
 
 function displayTrustHistory(anchorId, history, currentScore) {

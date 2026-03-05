@@ -64,18 +64,24 @@ INSERT INTO platform_verifications (anchor_id, platform_name, profile_url, verif
 (1, 'Instagram', 'https://instagram.com/user1', 'tok_inst_abc123xyz'),
 (1, 'LinkedIn', 'https://linkedin.com/in/user1', 'tok_link_def456uvw'),
 (1, 'X', 'https://x.com/user1', 'tok_x_ghi789rst'),
+(1, 'Kaggle', 'https://kaggle.com/user1', 'tok_kaggle_jkl012mno'),
 (2, 'Instagram', 'https://instagram.com/user2', 'tok_inst_jkl012mno'),
-(2, 'LinkedIn', 'https://linkedin.com/in/user2', 'tok_link_pqr345stu');
+(2, 'LinkedIn', 'https://linkedin.com/in/user2', 'tok_link_pqr345stu'),
+(2, 'Kaggle', 'https://kaggle.com/user2', 'tok_kaggle_vwx789abc');
 
 INSERT INTO reputation_events (anchor_id, event_type, platform, score_impact) VALUES
 (1, 'successful_verification', 'Instagram', 5.00),
 (1, 'successful_verification', 'LinkedIn', 5.00),
 (1, 'suspicious_activity', 'X', -3.00),
+(1, 'successful_verification', 'Kaggle', 5.00),
 (2, 'successful_verification', 'Instagram', 5.00),
-(2, 'successful_verification', 'LinkedIn', 5.00);
+(2, 'successful_verification', 'LinkedIn', 5.00),
+(2, 'successful_verification', 'Kaggle', 5.00);
 
 INSERT INTO consistency_checks (user_group, platform_a, platform_b, consistency_score) VALUES
 ('group_user1', 'Instagram', 'LinkedIn', 88.50),
 ('group_user1', 'Instagram', 'X', 75.20),
 ('group_user1', 'LinkedIn', 'X', 79.30),
-('group_user2', 'Instagram', 'LinkedIn', 92.10);
+('group_user1', 'GitHub', 'Kaggle', 85.60),
+('group_user2', 'Instagram', 'LinkedIn', 92.10),
+('group_user2', 'LinkedIn', 'Kaggle', 87.40);

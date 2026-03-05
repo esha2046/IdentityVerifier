@@ -1,63 +1,76 @@
 const API_URL = 'http://localhost:5000/api';
 
+// Attach JWT token to every request automatically
+function authHeaders() {
+    const token = localStorage.getItem('jwt_token');
+    return {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+}
+
+// Handle 401 responses globally — redirect to login if token expired
+async function apiFetch(url, options = {}) {
+    const res = await fetch(url, {
+        ...options,
+        headers: { ...authHeaders(), ...(options.headers || {}) }
+    });
+    if (res.status === 401) {
+        localStorage.removeItem('jwt_token');
+        localStorage.removeItem('jwt_expiry');
+        localStorage.removeItem('user');
+        window.location.href = 'login.html';
+        return;
+    }
+    return res.json();
+}
+
 const api = {
     // Statistics
-    getStatistics: () => 
-        fetch(`${API_URL}/statistics`).then(r => r.json()),
-    
+    getStatistics: () => apiFetch(`${API_URL}/statistics`),
+
     // Identities
-    createIdentity: () => 
-        fetch(`${API_URL}/identity`, { 
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        }).then(r => r.json()),
-    
-    getIdentities: () => 
-        fetch(`${API_URL}/identities`).then(r => r.json()),
-    
-    searchIdentities: (term) => 
-        fetch(`${API_URL}/identities/search?q=${encodeURIComponent(term)}`).then(r => r.json()),
-    
-    getIdentityDetails: (id) => 
-        fetch(`${API_URL}/identity/${id}`).then(r => r.json()),
-    
-    exportIdentity: (id) => 
-        fetch(`${API_URL}/identity/${id}/export`).then(r => r.json()),
-    
-    getTrustHistory: (id) => 
-        fetch(`${API_URL}/identity/${id}/history`).then(r => r.json()),
-    
+    createIdentity: () =>
+        apiFetch(`${API_URL}/identity`, { method: 'POST' }),
+
+    getIdentities: () => apiFetch(`${API_URL}/identities`),
+
+    searchIdentities: (term) =>
+        apiFetch(`${API_URL}/identities/search?q=${encodeURIComponent(term)}`),
+
+    getIdentityDetails: (id) => apiFetch(`${API_URL}/identity/${id}`),
+
+    exportIdentity: (id) => apiFetch(`${API_URL}/identity/${id}/export`),
+
+    getTrustHistory: (id) => apiFetch(`${API_URL}/identity/${id}/history`),
+
     // Verifications
     addVerification: (data) =>
-        fetch(`${API_URL}/verification`, {
+        apiFetch(`${API_URL}/verification`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
-        }).then(r => r.json()),
-    
-    getVerifications: () => 
-        fetch(`${API_URL}/verifications`).then(r => r.json()),
-    
+        }),
+
+    getVerifications: () => apiFetch(`${API_URL}/verifications`),
+
     // Consistency Checks
     runConsistencyCheck: (data) =>
-        fetch(`${API_URL}/consistency-check`, {
+        apiFetch(`${API_URL}/consistency-check`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
-        }).then(r => r.json()),
-    
-    getConsistencyChecks: () => 
-        fetch(`${API_URL}/consistency-checks`).then(r => r.json()),
-    
+        }),
+
+    getConsistencyChecks: () => apiFetch(`${API_URL}/consistency-checks`),
+
     // Reputation Events
     logEvent: (data) =>
-        fetch(`${API_URL}/reputation-event`, {
+        apiFetch(`${API_URL}/reputation-event`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
-        }).then(r => r.json()),
-    
+        }),
+
+    getReputationEvents: () => apiFetch(`${API_URL}/reputation-events`),
+
     // Health Check
-    healthCheck: () =>
-        fetch(`${API_URL}/health`).then(r => r.json())
+    healthCheck: () => apiFetch(`${API_URL}/health`)
 };

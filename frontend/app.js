@@ -60,6 +60,18 @@ const oauthSimulator = {
                 { title: 'Validating Profile', description: 'Cross-referencing profile details...', duration: 1500 },
                 { title: 'Verifying Identity', description: 'Matching identity anchor with profile...', duration: 2000 }
             ]
+        },
+        'Kaggle': {
+            logo: '🏆',
+            color: 'kaggle',
+            steps: [
+                { title: 'Redirecting to Kaggle', description: 'Opening OAuth authorization page...', duration: 1500 },
+                { title: 'Authenticating User', description: 'Verifying credentials with Kaggle...', duration: 2000 },
+                { title: 'Requesting Profile Access', description: 'Requesting permission to access profile data...', duration: 1800 },
+                { title: 'Fetching Profile Data', description: 'Retrieving competitions and kernels data...', duration: 2500 },
+                { title: 'Validating Profile', description: 'Cross-referencing profile details...', duration: 1500 },
+                { title: 'Verifying Identity', description: 'Matching identity anchor with profile...', duration: 2000 }
+            ]
         }
     },
 
@@ -481,6 +493,23 @@ async function loadConsistencyChecks() {
     } catch (error) {
         console.error('Error loading consistency checks:', error);
         tbody.innerHTML = `<tr><td colspan="6" class="no-data">Error loading checks: ${error.message}</td></tr>`;
+    }
+}
+
+async function loadEvents() {
+    const tbody = document.querySelector('#eventsTable tbody');
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-row"><div class="loading-spinner"></div> Loading reputation events...</td></tr>';
+    
+    try {
+        const data = await api.getReputationEvents();
+        if (data.success) {
+            displayEvents(data.events);
+        } else {
+            tbody.innerHTML = `<tr><td colspan="5" class="no-data">Error loading events: ${data.error || 'Unknown error'}</td></tr>`;
+        }
+    } catch (error) {
+        console.error('Error loading reputation events:', error);
+        tbody.innerHTML = `<tr><td colspan="5" class="no-data">Error loading events: ${error.message}</td></tr>`;
     }
 }
 

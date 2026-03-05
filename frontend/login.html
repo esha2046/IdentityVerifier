@@ -184,6 +184,35 @@
             color: #666;
         }
 
+        .toggle-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .toggle-link span {
+            color: #667eea;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .toggle-link span:hover {
+            text-decoration: underline;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
@@ -218,12 +247,13 @@
 
         <div class="form-section">
             <div class="form-header">
-                <h2>Welcome</h2>
-                <p>Enter your credentials to continue</p>
+                <h2 id="formTitle">Welcome Back</h2>
+                <p id="formSubtitle">Sign in to your account</p>
             </div>
 
             <div id="alert" class="alert"></div>
 
+            <!-- Login Form -->
             <form id="login-form">
                 <div class="form-group">
                     <label for="email">Email Address</label>
@@ -233,64 +263,146 @@
                     <label for="password">Password</label>
                     <input type="password" id="password" placeholder="Enter your password" required>
                 </div>
-                <button type="submit" class="submit-btn">Continue to Dashboard</button>
+                <button type="submit" class="submit-btn" id="loginBtn">Sign In</button>
             </form>
 
-            <div class="demo-hint">
-                💡 Just enter any email and password to continue
+            <!-- Register Form (hidden by default) -->
+            <form id="register-form" style="display:none;">
+                <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <input type="text" id="reg-username" placeholder="Choose a username" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email Address</label>
+                    <input type="email" id="reg-email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <input type="password" id="reg-password" placeholder="Min. 8 characters" required>
+                </div>
+                <button type="submit" class="submit-btn" id="registerBtn">Create Account</button>
+            </form>
+
+            <div class="toggle-link" id="toggleText">
+                Don't have an account? <span onclick="toggleForm()">Register here</span>
             </div>
         </div>
     </div>
 
     <script>
-        function showAlert(message) {
+        const API_URL = 'http://localhost:5000/api';
+        let isLoginMode = true;
+
+        function showAlert(message, type = 'error') {
             const alert = document.getElementById('alert');
             alert.textContent = message;
-            alert.className = 'alert alert-error show';
+            alert.className = `alert alert-${type} show`;
         }
 
         function hideAlert() {
-            const alert = document.getElementById('alert');
-            alert.className = 'alert';
+            document.getElementById('alert').className = 'alert';
         }
 
-        document.getElementById('login-form').addEventListener('submit', (e) => {
+        function toggleForm() {
+            isLoginMode = !isLoginMode;
+            hideAlert();
+
+            document.getElementById('login-form').style.display = isLoginMode ? 'block' : 'none';
+            document.getElementById('register-form').style.display = isLoginMode ? 'none' : 'block';
+            document.getElementById('formTitle').textContent = isLoginMode ? 'Welcome Back' : 'Create Account';
+            document.getElementById('formSubtitle').textContent = isLoginMode ? 'Sign in to your account' : 'Register to get started';
+            document.getElementById('toggleText').innerHTML = isLoginMode
+                ? 'Don\'t have an account? <span onclick="toggleForm()">Register here</span>'
+                : 'Already have an account? <span onclick="toggleForm()">Sign in</span>';
+        }
+
+        // LOGIN
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             hideAlert();
 
             const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value.trim();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
 
-            // Simple validation
-            if (!email || !password) {
-                showAlert('Please enter both email and password');
-                return;
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            try {
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // Store JWT and user info
+                    const expiry = new Date().getTime() + (24 * 60 * 60 * 1000); // 24 hours
+                    localStorage.setItem('jwt_token', data.token);
+                    localStorage.setItem('jwt_expiry', expiry);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = 'index.html';
+                } else {
+                    showAlert(data.error || 'Login failed');
+                }
+            } catch (err) {
+                showAlert('Cannot connect to server. Make sure Flask is running.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
             }
-
-            if (!email.includes('@')) {
-                showAlert('Please enter a valid email address');
-                return;
-            }
-
-            if (password.length < 4) {
-                showAlert('Password must be at least 4 characters');
-                return;
-            }
-
-            // Store user info (optional)
-            const user = {
-                email: email,
-                loginTime: new Date().toISOString()
-            };
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('isLoggedIn', 'true');
-
-            // Redirect to main page
-            window.location.href = 'index.html';
         });
 
-        // Check if already logged in
-        if (localStorage.getItem('isLoggedIn') === 'true') {
+        // REGISTER
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAlert();
+
+            const username = document.getElementById('reg-username').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const btn = document.getElementById('registerBtn');
+
+            if (password.length < 8) {
+                showAlert('Password must be at least 8 characters');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+
+            try {
+                const res = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    const expiry = new Date().getTime() + (24 * 60 * 60 * 1000);
+                    localStorage.setItem('jwt_token', data.token);
+                    localStorage.setItem('jwt_expiry', expiry);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = 'index.html';
+                } else {
+                    showAlert(data.error || 'Registration failed');
+                }
+            } catch (err) {
+                showAlert('Cannot connect to server. Make sure Flask is running.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
+            }
+        });
+
+        // If already logged in with valid token, skip login page
+        const token = localStorage.getItem('jwt_token');
+        const expiry = localStorage.getItem('jwt_expiry');
+        if (token && expiry && new Date().getTime() < parseInt(expiry)) {
             window.location.href = 'index.html';
         }
     </script>

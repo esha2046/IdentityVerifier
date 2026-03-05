@@ -76,8 +76,7 @@ class Identity:
         
         events, _ = execute_query(
             """
-            SELECT event_type, platform, time_stamp, 
-                   LAG(trust_score) OVER (ORDER BY time_stamp) as prev_score
+            SELECT event_id, anchor_id, event_type, platform, time_stamp
             FROM reputation_events
             WHERE anchor_id = %s
             ORDER BY time_stamp DESC
@@ -247,3 +246,13 @@ class ReputationEvent:
             Identity.update_trust_score(anchor_id, score_impact)
         
         return event, None
+    
+    @staticmethod
+    def get_all():
+        """Get all reputation events"""
+        query = """
+            SELECT event_id, anchor_id, event_type, platform, time_stamp
+            FROM reputation_events
+            ORDER BY time_stamp DESC
+        """
+        return execute_query(query)
