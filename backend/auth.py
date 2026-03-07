@@ -4,8 +4,7 @@ import datetime
 from functools import wraps
 from flask import request, jsonify
 from database import execute_query
-
-SECRET_KEY = "twinthisissopeak"  
+from config import SECRET_KEY
 
 def hash_password(password):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')

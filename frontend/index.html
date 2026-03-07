@@ -82,7 +82,41 @@
 
         <!-- Platform Verifications Section -->
         <div id="verifications" class="content-section">
-            <h2>Add Platform Verification</h2>
+
+            <!-- OAuth Connect Buttons -->
+            <h2>Connect Real Accounts</h2>
+            <p style="color: #666; margin-bottom: 16px; font-size: 14px;">
+                Connect your actual accounts — we'll verify ownership via OAuth and automatically update your trust score.
+            </p>
+            <div id="oauthMessage" class="message"></div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+                <button onclick="connectOAuth('github')" style="
+                    display: flex; align-items: center; gap: 8px;
+                    padding: 10px 20px; background: #24292e; color: white;
+                    border: none; border-radius: 8px; cursor: pointer;
+                    font-size: 14px; font-weight: 600;">
+                    💻 Connect GitHub
+                </button>
+                <button onclick="connectOAuth('google')" style="
+                    display: flex; align-items: center; gap: 8px;
+                    padding: 10px 20px; background: #fff; color: #444;
+                    border: 2px solid #ddd; border-radius: 8px; cursor: pointer;
+                    font-size: 14px; font-weight: 600;">
+                    🔵 Connect Google
+                </button>
+            </div>
+
+            <!-- Connected OAuth accounts -->
+            <div id="connectedAccounts" style="margin-bottom: 32px;">
+                <h3 style="font-size: 15px; color: #555; margin-bottom: 10px;">Connected Accounts</h3>
+                <div id="connectedAccountsList">
+                    <p style="color: #999; font-size: 14px;">No accounts connected yet.</p>
+                </div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #eee; margin-bottom: 32px;">
+
+            <h2>Add Manual Verification</h2>
             <div class="message" id="verificationMessage"></div>
             <form onsubmit="addVerification(event)">
                 <div class="form-row">
@@ -321,6 +355,107 @@
                 if (el) el.textContent = `👤 ${_user.username}`;
             });
         }
+
+        // ── OAuth ────────────────────────────────────────────────────────────
+
+        function connectOAuth(platform) {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!user.user_id) {
+                alert('Could not find your user ID. Please log out and log in again.');
+                return;
+            }
+            // Open the OAuth flow in the same tab
+            // Backend will redirect to GitHub/Google, then back to index.html
+            window.location.href = `http://localhost:5000/api/oauth/${platform}?user_id=${user.user_id}`;
+        }
+
+        async function loadConnectedAccounts() {
+            try {
+                const res = await fetch('http://localhost:5000/api/oauth/verifications', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jwt_token')}` }
+                });
+                const data = await res.json();
+                const container = document.getElementById('connectedAccountsList');
+
+                if (!data.success || !data.verifications || data.verifications.length === 0) {
+                    container.innerHTML = '<p style="color: #999; font-size: 14px;">No accounts connected yet.</p>';
+                    return;
+                }
+
+                container.innerHTML = data.verifications.map(v => `
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 14px;
+                                background:#f8f9fa; border-radius:8px; margin-bottom:8px; font-size:14px;">
+                        <span style="font-size:20px;">${v.platform === 'GitHub' ? '💻' : '🔵'}</span>
+                        <div>
+                            <strong>${v.platform}</strong> — ${v.platform_username}
+                            <div style="color:#999; font-size:12px;">
+                                Connected ${new Date(v.connected_at).toLocaleDateString()}
+                                ${v.profile_url ? `· <a href="${v.profile_url}" target="_blank">View Profile</a>` : ''}
+                            </div>
+                        </div>
+                        <span style="margin-left:auto; background:#d4edda; color:#155724;
+                                     padding:3px 10px; border-radius:12px; font-size:12px;">✓ Verified</span>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Failed to load connected accounts:', err);
+            }
+        }
+
+        // Handle OAuth redirect back to this page
+        (function handleOAuthCallback() {
+            const params = new URLSearchParams(window.location.search);
+            const success = params.get('oauth_success');
+            const error   = params.get('oauth_error');
+            const platform = params.get('platform');
+            const username = params.get('username');
+
+            if (success) {
+                // Clean the URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                // Switch to verifications tab and show success
+                document.addEventListener('DOMContentLoaded', () => {
+                    // Switch tab
+                    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.getElementById('verifications').classList.add('active');
+                    document.querySelectorAll('.tab')[1].classList.add('active');
+
+                    // Show success message
+                    const msg = document.getElementById('oauthMessage');
+                    if (msg) {
+                        msg.textContent = `✅ Successfully connected ${platform} account: ${username}`;
+                        msg.className = 'message success';
+                        msg.style.display = 'block';
+                        setTimeout(() => msg.style.display = 'none', 6000);
+                    }
+                    loadConnectedAccounts();
+                });
+            }
+
+            if (error) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+                document.addEventListener('DOMContentLoaded', () => {
+                    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.getElementById('verifications').classList.add('active');
+                    document.querySelectorAll('.tab')[1].classList.add('active');
+
+                    const msg = document.getElementById('oauthMessage');
+                    if (msg) {
+                        msg.textContent = `❌ OAuth error: ${decodeURIComponent(error)}`;
+                        msg.className = 'message error';
+                        msg.style.display = 'block';
+                        setTimeout(() => msg.style.display = 'none', 6000);
+                    }
+                });
+            }
+        })();
+
+        // Load connected accounts when verifications tab is opened
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConnectedAccounts();
+        });
     </script>
 
     <!-- Load JavaScript files in correct order -->
