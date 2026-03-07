@@ -280,21 +280,25 @@ async function viewIdentity(anchorId) {
         const data = await api.getIdentityDetails(anchorId);
         if (data.success) {
             const { identity, verifications, events } = data;
-            
+
             const verificationsHtml = verifications && verifications.length > 0
-                ? verifications.map((v, i) => `
+                ? verifications.map((v) => `
                     <div class="verification-item">
                         <span class="platform-badge">
                             <span class="platform-icon">${ui.platformIcon(v.platform_name)}</span>
                             ${v.platform_name}
                         </span>
                         <a href="${v.profile_url}" target="_blank">${ui.shortenUrl(v.profile_url, 50)}</a>
+                        ${v.signature
+                            ? `<span title="Cryptographically signed ✓" style="color:#28a745; font-size:12px; margin-left:8px;">🔏 Signed</span>`
+                            : `<span title="No signature (created before Week 3)" style="color:#999; font-size:12px; margin-left:8px;">unsigned</span>`
+                        }
                     </div>
                 `).join('')
                 : '<p class="no-data">No verifications found.</p>';
-            
+
             const eventsHtml = events && events.length > 0
-                ? events.slice(0, 10).map((e, i) => `
+                ? events.slice(0, 10).map((e) => `
                     <div class="event-item">
                         <span class="event-type">${e.event_type}</span>
                         <span class="event-platform">${e.platform || 'N/A'}</span>
@@ -302,7 +306,27 @@ async function viewIdentity(anchorId) {
                     </div>
                 `).join('')
                 : '<p class="no-data">No events found.</p>';
-            
+
+            // Determine QR section — only show for identities with real crypto keys
+            const hasRealKey = !!identity.public_key_b64;
+            const qrSectionHtml = hasRealKey
+                ? `<div class="detail-section">
+                        <h3>🔐 Identity QR Code</h3>
+                        <p style="font-size:13px; color:#666; margin-bottom:12px;">
+                            Scan to verify this identity's public key. Anyone can use this to confirm signed verifications are authentic.
+                        </p>
+                        <div id="qrCodeContainer" style="display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+                            <div style="color:#999; font-size:13px;">Loading QR code...</div>
+                        </div>
+                   </div>`
+                : `<div class="detail-section">
+                        <h3>🔐 Identity QR Code</h3>
+                        <p style="font-size:13px; color:#999;">
+                            This identity was created before cryptographic keys were added.
+                            Create a new identity to get a QR code and Ed25519 key pair.
+                        </p>
+                   </div>`;
+
             content.innerHTML = `
                 <div class="identity-details">
                     <div class="detail-section">
@@ -311,7 +335,7 @@ async function viewIdentity(anchorId) {
                             <strong>Anchor ID:</strong> <span>${identity.anchor_id}</span>
                         </div>
                         <div class="detail-row">
-                            <strong>Public Key:</strong> 
+                            <strong>Public Key:</strong>
                             <span class="copyable-key" onclick="ui.copyToClipboard('${identity.user_pub_key}', 'Public key copied!')" title="Click to copy">
                                 ${identity.user_pub_key ? identity.user_pub_key.substring(0, 60) + '...' : 'N/A'}
                                 <span class="copy-icon">📋</span>
@@ -323,15 +347,23 @@ async function viewIdentity(anchorId) {
                         <div class="detail-row">
                             <strong>Created:</strong> <span title="${ui.formatDate(identity.created_at)}">${ui.relativeTime(identity.created_at)}</span>
                         </div>
+                        <div class="detail-row">
+                            <strong>Crypto Keys:</strong>
+                            <span style="color: ${hasRealKey ? '#28a745' : '#999'}; font-size:13px;">
+                                ${hasRealKey ? '✅ Ed25519 key pair (real crypto)' : '⚠️ Legacy random key'}
+                            </span>
+                        </div>
                     </div>
-                    
+
+                    ${qrSectionHtml}
+
                     <div class="detail-section">
                         <h3>Platform Verifications (${verifications ? verifications.length : 0})</h3>
                         <div class="verifications-list">
                             ${verificationsHtml}
                         </div>
                     </div>
-                    
+
                     <div class="detail-section">
                         <h3>Recent Events (${events ? events.length : 0})</h3>
                         <div class="events-list">
@@ -340,6 +372,39 @@ async function viewIdentity(anchorId) {
                     </div>
                 </div>
             `;
+
+            // Fetch and inject QR code if this identity has real crypto keys
+            if (hasRealKey) {
+                try {
+                    const qrData = await api.getQrCode(anchorId);
+                    const qrContainer = document.getElementById('qrCodeContainer');
+                    if (qrContainer && qrData.success) {
+                        qrContainer.innerHTML = `
+                            <div>
+                                <img src="${qrData.qr_code}" alt="Identity QR Code"
+                                     style="width:160px; height:160px; border:1px solid #eee; border-radius:8px;" />
+                                <div style="margin-top:8px; text-align:center;">
+                                    <a href="${qrData.qr_code}" download="identity_${anchorId}_qr.png"
+                                       style="font-size:12px; color:#667eea;">⬇ Download QR</a>
+                                </div>
+                            </div>
+                            <div style="font-size:12px; color:#666; max-width:240px;">
+                                <strong>Public Key (Base64):</strong><br>
+                                <span style="word-break:break-all; font-family:monospace; font-size:11px;">${qrData.public_key_b64}</span>
+                                <br><br>
+                                <button onclick="ui.copyToClipboard('${qrData.public_key_b64}', 'Public key copied!')"
+                                        style="font-size:11px; padding:4px 10px; cursor:pointer;">
+                                    📋 Copy Public Key
+                                </button>
+                            </div>
+                        `;
+                    } else if (qrContainer) {
+                        qrContainer.innerHTML = '<p style="color:#999; font-size:13px;">Could not load QR code.</p>';
+                    }
+                } catch (err) {
+                    console.error('QR fetch error:', err);
+                }
+            }
         } else {
             content.innerHTML = `<p class="error-message">Error: ${data.error || 'Unknown error'}</p>`;
         }

@@ -47,6 +47,8 @@ app.add_url_rule('/api/consistency-check',                     'consistency_chec
 app.add_url_rule('/api/consistency-checks',                    'consistency_checks',  token_required(routes.get_consistency_checks),   methods=['GET'])
 app.add_url_rule('/api/reputation-event',                      'reputation_event',    token_required(routes.log_reputation_event),     methods=['POST'])
 app.add_url_rule('/api/reputation-events',                     'reputation_events',   token_required(routes.get_reputation_events),    methods=['GET'])
+app.add_url_rule('/api/identity/<int:anchor_id>/qr',  'qr_code',     token_required(routes.get_qr_code),    methods=['GET'])
+app.add_url_rule('/api/verify-claim',                  'verify_claim', token_required(routes.verify_claim),   methods=['POST'])
 
 # ── Error handlers ─────────────────────────────────────────────────────────────
 @app.errorhandler(404)

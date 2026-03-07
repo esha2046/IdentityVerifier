@@ -318,3 +318,46 @@ def health_check():
         conn.close()
         return success_response({'status': 'healthy', 'message': 'Database connection OK'})
     return error_response('Database connection failed', 500)
+
+def get_qr_code(anchor_id):
+    """Generate and return a QR code for an identity's public key"""
+    from utils import generate_qr_code_base64
+
+    identity, error = Identity.get_by_id(anchor_id)
+    if error or not identity:
+        return error_response('Identity not found', 404)
+
+    public_key_b64 = identity.get('public_key_b64')
+    if not public_key_b64:
+        return error_response('This identity has no cryptographic key yet. Re-create it to get one.', 400)
+
+    qr_base64 = generate_qr_code_base64(public_key_b64, anchor_id)
+    return success_response({
+        'anchor_id':      anchor_id,
+        'public_key':     identity['user_pub_key'],
+        'public_key_b64': public_key_b64,
+        'qr_code':        f"data:image/png;base64,{qr_base64}"
+    })
+
+
+def verify_claim():
+    """Verify a verification signature — proves a claim hasn't been tampered with"""
+    data         = request.get_json()
+    anchor_id    = data.get('anchor_id')
+    platform     = data.get('platform')
+    profile_url  = data.get('profile_url')
+    verified_at  = data.get('verified_at')
+    signature    = data.get('signature')
+
+    if not all([anchor_id, platform, profile_url, verified_at, signature]):
+        return error_response('Missing fields: anchor_id, platform, profile_url, verified_at, signature')
+
+    valid, error = Verification.verify_claim(anchor_id, platform, profile_url, verified_at, signature)
+    if error:
+        return error_response(error, 404)
+
+    return success_response({
+        'valid':   valid,
+        'message': '✅ Signature is valid — this verification has not been tampered with.' if valid
+                   else '❌ Signature is invalid — this verification may have been tampered with.'
+    })

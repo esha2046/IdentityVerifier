@@ -44,6 +44,8 @@ const api = {
 
     getTrustHistory: (id) => apiFetch(`${API_URL}/identity/${id}/history`),
 
+    getQrCode: (id) => apiFetch(`${API_URL}/identity/${id}/qr`),
+
     // Verifications
     addVerification: (data) =>
         apiFetch(`${API_URL}/verification`, {
