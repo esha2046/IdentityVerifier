@@ -66,6 +66,17 @@ const api = {
 
     getConsistencyReport: (checkId) => apiFetch(`${API_URL}/consistency-check/${checkId}/report`),
 
+    storeOnBlockchain: (verificationId, anchorId, platform, profileUrl) =>
+        apiFetch(`${API_URL}/blockchain/store`, {
+            method: 'POST',
+            body: JSON.stringify({
+                verification_id: verificationId,
+                anchor_id:       anchorId,
+                platform:        platform,
+                profile_url:     profileUrl
+            })
+        }),
+
     // Reputation Events
     logEvent: (data) =>
         apiFetch(`${API_URL}/reputation-event`, {

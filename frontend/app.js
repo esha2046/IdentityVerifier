@@ -742,3 +742,36 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStatistics();
     loadIdentities();
 });
+
+// ── Blockchain ────────────────────────────────────────────────────────────────
+
+async function storeOnBlockchain(verificationId, anchorId, platform, profileUrl) {
+    const btn = event.target;
+    btn.textContent = '...';
+    btn.disabled = true;
+
+    try {
+        const data = await api.storeOnBlockchain(verificationId, anchorId, platform, profileUrl);
+
+        if (data.success && data.tx_hash) {
+            // Replace button with on-chain link immediately
+            const td = btn.closest('td');
+            td.innerHTML = `<a href="https://amoy.polygonscan.com/tx/${data.tx_hash}" target="_blank"
+                               style="font-size:11px;color:#00d4a8;display:flex;align-items:center;gap:4px;white-space:nowrap;">
+                               &#9741; On-chain
+                            </a>`;
+            ui.showMessage('verificationMessage', `Stored on Polygon Amoy! Tx: ${data.tx_hash.substring(0,20)}...`, 'success');
+        } else if (data.note && data.note.includes('Already stored')) {
+            btn.textContent = 'Done';
+            ui.showMessage('verificationMessage', 'Already stored on-chain.', 'info');
+        } else {
+            btn.textContent = 'Store';
+            btn.disabled = false;
+            ui.showMessage('verificationMessage', data.error || 'Blockchain error', 'error');
+        }
+    } catch (err) {
+        btn.textContent = 'Store';
+        btn.disabled = false;
+        ui.showMessage('verificationMessage', 'Error: ' + err.message, 'error');
+    }
+}

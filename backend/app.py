@@ -63,6 +63,8 @@ app.add_url_rule('/api/consistency-checks',                         'consistency
 app.add_url_rule('/api/consistency-check/<int:check_id>/report',    'consistency_report',  token_required(routes.get_consistency_report),  methods=['GET'])
 app.add_url_rule('/api/reputation-event',                           'reputation_event',    token_required(routes.log_reputation_event),     methods=['POST'])
 app.add_url_rule('/api/reputation-events',                          'reputation_events',   token_required(routes.get_reputation_events),    methods=['GET'])
+app.add_url_rule('/api/blockchain/store',  'blockchain_store',  token_required(routes.store_on_blockchain), methods=['POST'])
+app.add_url_rule('/api/blockchain/status', 'blockchain_status', token_required(routes.blockchain_status),   methods=['GET'])
 
 # ── Error handlers ─────────────────────────────────────────────────────────────
 @app.errorhandler(404)

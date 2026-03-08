@@ -388,3 +388,35 @@ def verify_claim():
         'message': '✅ Signature is valid — this verification has not been tampered with.' if valid
                    else '❌ Signature is invalid — this verification may have been tampered with.'
     })
+
+
+def store_on_blockchain():
+    """Store a verification hash on Polygon Amoy"""
+    from blockchain import store_verification_on_chain
+    data = request.get_json()
+    verification_id = data.get('verification_id')
+    anchor_id       = data.get('anchor_id')
+    platform        = data.get('platform')
+    profile_url     = data.get('profile_url')
+
+    if not all([verification_id, anchor_id, platform, profile_url]):
+        return error_response('verification_id, anchor_id, platform and profile_url are required')
+
+    result = store_verification_on_chain(verification_id, anchor_id, platform, profile_url)
+    if not result['success']:
+        return error_response(result.get('error', 'Blockchain error'), 500)
+
+    # Save tx_hash to database
+    execute_query(
+        "UPDATE platform_verifications SET tx_hash = %s WHERE verification_id = %s",
+        (result.get('tx_hash'), verification_id),
+        commit=True
+    )
+    return success_response(result)
+
+
+def blockchain_status():
+    """Health check for blockchain connection"""
+    from blockchain import check_connection
+    result = check_connection()
+    return success_response(result)

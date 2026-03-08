@@ -10,6 +10,13 @@ GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 SECRET_KEY           = os.getenv('SECRET_KEY')
 FERNET_KEY           = os.getenv('FERNET_KEY')
 
+
+CONTRACT_ADDRESS    = os.getenv('CONTRACT_ADDRESS')
+WALLET_ADDRESS      = os.getenv('WALLET_ADDRESS')
+WALLET_PRIVATE_KEY  = os.getenv('WALLET_PRIVATE_KEY')
+AMOY_RPC_URL        = os.getenv('AMOY_RPC_URL', 'https://rpc-amoy.polygon.technology')
+
+
 # Render provides DATABASE_URL — use it if available, otherwise fall back to local config
 DATABASE_URL = os.getenv('DATABASE_URL')
 

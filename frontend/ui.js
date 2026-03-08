@@ -248,6 +248,18 @@ function displayVerifications(verifications, page = 1) {
             <td><a href="${v.profile_url}" target="_blank">${ui.shortenUrl(v.profile_url)}</a></td>
             <td title="${ui.formatDate(v.verified_at)}">${ui.relativeTime(v.verified_at)}</td>
             <td>${ui.trustBadge(v.trust_score)}</td>
+            <td>
+                ${v.tx_hash
+                    ? `<a href="https://amoy.polygonscan.com/tx/${v.tx_hash}" target="_blank"
+                          style="font-size:11px;color:#00d4a8;display:flex;align-items:center;gap:4px;white-space:nowrap;">
+                          &#9741; On-chain
+                       </a>`
+                    : `<button onclick="storeOnBlockchain(${v.verification_id}, ${v.anchor_id}, '${v.platform_name}', '${v.profile_url}')"
+                               style="font-size:11px;padding:4px 10px;">
+                          Store
+                       </button>`
+                }
+            </td>
         </tr>
     `).join('');
     
