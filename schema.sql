@@ -1,87 +1,85 @@
--- database_schema.sql
--- PostgreSQL Database Schema for Cross-Platform Digital Identity Verifier
-
--- Drop existing tables if they exist
-DROP TABLE IF EXISTS reputation_events CASCADE;
-DROP TABLE IF EXISTS consistency_checks CASCADE;
-DROP TABLE IF EXISTS platform_verifications CASCADE;
-DROP TABLE IF EXISTS identity_anchors CASCADE;
-
--- Create identity_anchors table
-CREATE TABLE identity_anchors (
-    anchor_id SERIAL PRIMARY KEY,
-    user_pub_key VARCHAR(500) UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    trust_score DECIMAL(5,2) DEFAULT 50.00 CHECK (trust_score >= 0 AND trust_score <= 100)
+-- ── Users ─────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS users (
+    user_id       SERIAL PRIMARY KEY,
+    username      VARCHAR(50)  NOT NULL UNIQUE,
+    email         VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create platform_verifications table
-CREATE TABLE platform_verifications (
-    verification_id SERIAL PRIMARY KEY,
-    anchor_id INTEGER NOT NULL,
-    platform_name VARCHAR(100) NOT NULL,
-    profile_url VARCHAR(500),
-    verification_token VARCHAR(500) NOT NULL,
-    verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (anchor_id) REFERENCES identity_anchors(anchor_id) ON DELETE CASCADE,
-    UNIQUE(anchor_id, platform_name)
+CREATE INDEX IF NOT EXISTS idx_users_email    ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
+
+-- ── Identity Anchors ──────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS identity_anchors (
+    anchor_id             SERIAL PRIMARY KEY,
+    user_id               INTEGER REFERENCES users(user_id),
+    user_pub_key          VARCHAR(255) NOT NULL,
+    public_key_b64        TEXT,
+    private_key_encrypted TEXT,
+    trust_score           NUMERIC(5,2) DEFAULT 50.0,
+    created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create consistency_checks table
-CREATE TABLE consistency_checks (
-    check_id SERIAL PRIMARY KEY,
-    user_group VARCHAR(100),
-    platform_a VARCHAR(100) NOT NULL,
-    platform_b VARCHAR(100) NOT NULL,
-    consistency_score DECIMAL(5,2) CHECK (consistency_score >= 0 AND consistency_score <= 100),
-    checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE INDEX IF NOT EXISTS idx_anchors_user_id ON identity_anchors(user_id);
+
+
+-- ── Platform Verifications ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS platform_verifications (
+    verification_id    SERIAL PRIMARY KEY,
+    anchor_id          INTEGER NOT NULL REFERENCES identity_anchors(anchor_id),
+    platform_name      VARCHAR(50) NOT NULL,
+    profile_url        VARCHAR(500) NOT NULL,
+    verification_token VARCHAR(255),
+    signature          TEXT,
+    signed_at          TIMESTAMP,
+    verified_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create reputation_events table
-CREATE TABLE reputation_events (
-    event_id SERIAL PRIMARY KEY,
-    anchor_id INTEGER NOT NULL,
-    event_type VARCHAR(100) NOT NULL,
-    platform VARCHAR(100),
-    time_stamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    score_impact DECIMAL(5,2) DEFAULT 0.00,
-    FOREIGN KEY (anchor_id) REFERENCES identity_anchors(anchor_id) ON DELETE CASCADE
+CREATE INDEX IF NOT EXISTS idx_verifications_anchor_id ON platform_verifications(anchor_id);
+
+
+-- ── OAuth Verifications ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS oauth_verifications (
+    id                 SERIAL PRIMARY KEY,
+    user_id            INTEGER NOT NULL REFERENCES users(user_id),
+    anchor_id          INTEGER REFERENCES identity_anchors(anchor_id),
+    platform           VARCHAR(50) NOT NULL,
+    platform_user_id   VARCHAR(255) NOT NULL,
+    platform_username  VARCHAR(255),
+    profile_url        VARCHAR(500),
+    encrypted_token    TEXT NOT NULL,
+    signature          TEXT,
+    signed_at          TIMESTAMP,
+    connected_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(platform, platform_user_id)
 );
 
--- Create indexes for better performance
-CREATE INDEX idx_platform_verifications_anchor ON platform_verifications(anchor_id);
-CREATE INDEX idx_reputation_events_anchor ON reputation_events(anchor_id);
-CREATE INDEX idx_reputation_events_timestamp ON reputation_events(time_stamp);
-CREATE INDEX idx_consistency_checks_platforms ON consistency_checks(platform_a, platform_b);
+CREATE INDEX IF NOT EXISTS idx_oauth_user_id  ON oauth_verifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_platform ON oauth_verifications(platform);
 
--- Insert sample data
-INSERT INTO identity_anchors (user_pub_key, trust_score) VALUES
-('MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1x2y...', 75.50),
-('MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA8z9k...', 82.30),
-('MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5m3p...', 68.00);
 
-INSERT INTO platform_verifications (anchor_id, platform_name, profile_url, verification_token) VALUES
-(1, 'Instagram', 'https://instagram.com/user1', 'tok_inst_abc123xyz'),
-(1, 'LinkedIn', 'https://linkedin.com/in/user1', 'tok_link_def456uvw'),
-(1, 'X', 'https://x.com/user1', 'tok_x_ghi789rst'),
-(1, 'Kaggle', 'https://kaggle.com/user1', 'tok_kaggle_jkl012mno'),
-(2, 'Instagram', 'https://instagram.com/user2', 'tok_inst_jkl012mno'),
-(2, 'LinkedIn', 'https://linkedin.com/in/user2', 'tok_link_pqr345stu'),
-(2, 'Kaggle', 'https://kaggle.com/user2', 'tok_kaggle_vwx789abc');
+-- ── Consistency Checks ────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS consistency_checks (
+    check_id           SERIAL PRIMARY KEY,
+    user_group         VARCHAR(255),
+    platform_a         VARCHAR(50) NOT NULL,
+    platform_b         VARCHAR(50) NOT NULL,
+    consistency_score  NUMERIC(5,2),
+    breakdown          JSONB,
+    algorithm          VARCHAR(100),
+    checked_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-INSERT INTO reputation_events (anchor_id, event_type, platform, score_impact) VALUES
-(1, 'successful_verification', 'Instagram', 5.00),
-(1, 'successful_verification', 'LinkedIn', 5.00),
-(1, 'suspicious_activity', 'X', -3.00),
-(1, 'successful_verification', 'Kaggle', 5.00),
-(2, 'successful_verification', 'Instagram', 5.00),
-(2, 'successful_verification', 'LinkedIn', 5.00),
-(2, 'successful_verification', 'Kaggle', 5.00);
 
-INSERT INTO consistency_checks (user_group, platform_a, platform_b, consistency_score) VALUES
-('group_user1', 'Instagram', 'LinkedIn', 88.50),
-('group_user1', 'Instagram', 'X', 75.20),
-('group_user1', 'LinkedIn', 'X', 79.30),
-('group_user1', 'GitHub', 'Kaggle', 85.60),
-('group_user2', 'Instagram', 'LinkedIn', 92.10),
-('group_user2', 'LinkedIn', 'Kaggle', 87.40);
+-- ── Reputation Events ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS reputation_events (
+    event_id    SERIAL PRIMARY KEY,
+    anchor_id   INTEGER NOT NULL REFERENCES identity_anchors(anchor_id),
+    event_type  VARCHAR(100) NOT NULL,
+    platform    VARCHAR(50),
+    time_stamp  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_anchor_id ON reputation_events(anchor_id);
