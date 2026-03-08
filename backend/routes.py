@@ -14,7 +14,7 @@ def success_response(data):
 def error_response(message, status=400):
     return jsonify({'success': False, 'error': message}), status
 
-ALLOWED_PLATFORMS = {'Instagram', 'LinkedIn', 'X', 'Facebook', 'GitHub', 'Kaggle'}
+ALLOWED_PLATFORMS = {'Instagram', 'LinkedIn', 'X', 'Facebook', 'GitHub', 'Kaggle', 'Google'}
 ALLOWED_EVENT_TYPES = {'successful_verification', 'suspicious_activity', 'profile_update', 're_verification'}
 
 def is_valid_email(email):
@@ -268,6 +268,33 @@ def get_consistency_checks():
     if error:
         return error_response(error, 500)
     return success_response({'checks': [dict(c) for c in checks]})
+
+def get_consistency_report(check_id):
+    """Return detailed breakdown of a consistency check"""
+    import json
+    check, error = execute_query(
+        """
+        SELECT check_id, user_group, platform_a, platform_b,
+               consistency_score, breakdown, algorithm, checked_at
+        FROM consistency_checks WHERE check_id = %s
+        """,
+        (check_id,),
+        fetchone=True
+    )
+
+    if error or not check:
+        return error_response('Consistency check not found', 404)
+
+    check_dict = dict(check)
+
+    # Parse breakdown if it's a string
+    if isinstance(check_dict.get('breakdown'), str):
+        try:
+            check_dict['breakdown'] = json.loads(check_dict['breakdown'])
+        except Exception:
+            check_dict['breakdown'] = {}
+
+    return success_response({'report': check_dict})
 
 # ── Reputation Events ──────────────────────────────────────────────────────────
 

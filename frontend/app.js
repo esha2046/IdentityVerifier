@@ -546,20 +546,118 @@ async function runConsistencyCheck(event) {
 
 async function loadConsistencyChecks() {
     const tbody = document.querySelector('#consistencyTable tbody');
-    tbody.innerHTML = '<tr><td colspan="6" class="loading-row"><div class="loading-spinner"></div> Loading consistency checks...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="loading-row"><div class="loading-spinner"></div> Loading consistency checks...</td></tr>';
     
     try {
         const data = await api.getConsistencyChecks();
         if (data.success) {
-            displayConsistencyChecks(data.checks);
+            displayConsistencyChecksWithReport(data.checks);
         } else {
-            tbody.innerHTML = `<tr><td colspan="6" class="no-data">Error loading checks: ${data.error || 'Unknown error'}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="no-data">Error loading checks: ${data.error || 'Unknown error'}</td></tr>`;
         }
     } catch (error) {
         console.error('Error loading consistency checks:', error);
-        tbody.innerHTML = `<tr><td colspan="6" class="no-data">Error loading checks: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="no-data">Error loading checks: ${error.message}</td></tr>`;
     }
 }
+
+function displayConsistencyChecksWithReport(checks) {
+    const tbody = document.querySelector('#consistencyTable tbody');
+    if (!checks || checks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="no-data">No consistency checks found. Run your first check above!</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = checks.map(c => `
+        <tr>
+            <td>${c.check_id}</td>
+            <td>${c.user_group}</td>
+            <td><span class="platform-badge"><span class="platform-icon">${ui.platformIcon(c.platform_a)}</span>${c.platform_a}</span></td>
+            <td><span class="platform-badge"><span class="platform-icon">${ui.platformIcon(c.platform_b)}</span>${c.platform_b}</span></td>
+            <td>${ui.consistencyBadge(c.consistency_score)}</td>
+            <td title="${ui.formatDate(c.checked_at)}">${ui.relativeTime(c.checked_at)}</td>
+            <td>
+                <span style="font-size:11px; color:#999; display:block; margin-bottom:4px;">
+                    ${c.algorithm === 'seeded random (legacy)' ? '🎲 legacy' : '🧠 NLP'}
+                </span>
+                <button onclick="viewConsistencyReport(${c.check_id})">Report</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function viewConsistencyReport(checkId) {
+    const modal   = document.getElementById('consistencyReportModal');
+    const content = document.getElementById('consistencyReportContent');
+
+    content.innerHTML = '<div class="loading-spinner"></div><p>Loading report...</p>';
+    modal.style.display = 'block';
+
+    try {
+        const data = await api.getConsistencyReport(checkId);
+        if (!data.success) {
+            content.innerHTML = `<p class="error-message">Error: ${data.error}</p>`;
+            return;
+        }
+
+        const r          = data.report;
+        const breakdown  = r.breakdown || {};
+        const isLegacy   = r.algorithm === 'seeded random (legacy)';
+        const scoreColor = r.consistency_score >= 75 ? '#28a745' : r.consistency_score >= 50 ? '#f0ad4e' : '#dc3545';
+
+        const breakdownHtml = isLegacy || Object.keys(breakdown).length === 0
+            ? `<div style="background:#fff8e1; padding:12px; border-radius:8px; color:#856404; font-size:13px;">
+                ⚠️ This check used a legacy random score because no real OAuth profile data was available at the time.
+                Run a new check after connecting your accounts via OAuth to get a real NLP score.
+               </div>`
+            : `
+                <div style="margin-top:16px;">
+                    ${Object.entries(breakdown).map(([key, val]) => {
+                        const label      = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        const barColor   = val.score >= 75 ? '#28a745' : val.score >= 50 ? '#f0ad4e' : '#dc3545';
+                        return `
+                            <div style="margin-bottom:16px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                    <span style="font-size:13px; font-weight:600;">${label}</span>
+                                    <span style="font-size:13px; color:#666;">${val.weight} weight · <strong>${val.score}</strong> · ${val.level}</span>
+                                </div>
+                                <div style="background:#eee; border-radius:4px; height:8px;">
+                                    <div style="width:${val.score}%; background:${barColor}; height:8px; border-radius:4px; transition:width 0.5s;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+        content.innerHTML = `
+            <div style="text-align:center; margin-bottom:20px;">
+                <div style="font-size:48px; font-weight:700; color:${scoreColor};">${parseFloat(r.consistency_score).toFixed(1)}</div>
+                <div style="font-size:13px; color:#666;">Overall Consistency Score</div>
+                <div style="font-size:12px; color:#999; margin-top:4px;">
+                    ${ui.platformIcon(r.platform_a)} ${r.platform_a} vs ${ui.platformIcon(r.platform_b)} ${r.platform_b}
+                </div>
+            </div>
+
+            <div style="background:#f8f9fa; padding:12px 16px; border-radius:8px; margin-bottom:16px; font-size:13px;">
+                <strong>Algorithm:</strong> ${r.algorithm}<br>
+                <strong>Identity Anchor:</strong> #${r.user_group}<br>
+                <strong>Checked:</strong> ${ui.formatDate(r.checked_at)}
+            </div>
+
+            <h3 style="font-size:14px; margin-bottom:8px;">Score Breakdown</h3>
+            ${breakdownHtml}
+        `;
+    } catch (err) {
+        content.innerHTML = `<p class="error-message">Error loading report: ${err.message}</p>`;
+    }
+}
+
+function closeConsistencyModal() {
+    document.getElementById('consistencyReportModal').style.display = 'none';
+}
+
+
 
 async function loadEvents() {
     const tbody = document.querySelector('#eventsTable tbody');

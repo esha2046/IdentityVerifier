@@ -64,6 +64,8 @@ const api = {
 
     getConsistencyChecks: () => apiFetch(`${API_URL}/consistency-checks`),
 
+    getConsistencyReport: (checkId) => apiFetch(`${API_URL}/consistency-check/${checkId}/report`),
+
     // Reputation Events
     logEvent: (data) =>
         apiFetch(`${API_URL}/reputation-event`, {

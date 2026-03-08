@@ -224,26 +224,75 @@ class Verification:
 
 
 class ConsistencyCheck:
-    """Consistency Check model"""
+    """Consistency Check model — now uses real NLP algorithms"""
 
     @staticmethod
     def create(identity_anchor, platform_a, platform_b):
-        """Create consistency check"""
+        """Create consistency check using real NLP if OAuth data available"""
+        import json
+        from consistency import run_consistency_check
+        from database import execute_query as db_query
+
         if platform_a == platform_b:
             return None, "Platforms must be different"
 
-        score = calc_consistency_score(identity_anchor, platform_a, platform_b)
+        # Try to fetch real OAuth profile data for this identity
+        profile_a = None
+        profile_b = None
 
+        # Look up stored OAuth verifications for this anchor
+        verifications, _ = db_query(
+            """
+            SELECT platform, platform_username, profile_url
+            FROM oauth_verifications
+            WHERE anchor_id = %s
+            """,
+            (identity_anchor,)
+        )
+
+        if verifications:
+            for v in verifications:
+                platform = v['platform']
+                username = v['platform_username']
+
+                # Fetch real profile data from GitHub API if possible
+                if platform == platform_a:
+                    if platform == 'GitHub':
+                        from consistency import fetch_github_profile
+                        profile_a = fetch_github_profile(username)
+                    else:
+                        profile_a = {'username': username, 'name': username, 'bio': '', 'platform': platform}
+
+                elif platform == platform_b:
+                    if platform == 'GitHub':
+                        from consistency import fetch_github_profile
+                        profile_b = fetch_github_profile(username)
+                    else:
+                        profile_b = {'username': username, 'name': username, 'bio': '', 'platform': platform}
+
+        # Run the consistency check
+        score, result = run_consistency_check(
+            identity_anchor, platform_a, platform_b, profile_a, profile_b
+        )
+
+        # Store result
         query = """
             INSERT INTO consistency_checks
-                (user_group, platform_a, platform_b, consistency_score)
-            VALUES (%s, %s, %s, %s)
+                (user_group, platform_a, platform_b, consistency_score, breakdown, algorithm)
+            VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING check_id, user_group, platform_a, platform_b,
-                      consistency_score, checked_at
+                      consistency_score, breakdown, algorithm, checked_at
         """
-        return execute_query(
+        return db_query(
             query,
-            (identity_anchor, platform_a, platform_b, score),
+            (
+                identity_anchor,
+                platform_a,
+                platform_b,
+                score,
+                json.dumps(result.get('breakdown', {})),
+                result.get('algorithm', 'unknown')
+            ),
             fetchone=True,
             commit=True
         )
@@ -253,7 +302,7 @@ class ConsistencyCheck:
         """Get all consistency checks"""
         query = """
             SELECT check_id, user_group, platform_a, platform_b,
-                   consistency_score, checked_at
+                   consistency_score, breakdown, algorithm, checked_at
             FROM consistency_checks
             ORDER BY checked_at DESC
         """

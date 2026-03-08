@@ -134,6 +134,7 @@
                             <option value="Facebook">Facebook</option>
                             <option value="GitHub">GitHub</option>
                             <option value="Kaggle">Kaggle</option>
+                            <option value="Google">Google</option>                            
                         </select>
                     </div>
                 </div>
@@ -186,6 +187,7 @@
                             <option value="Facebook">Facebook</option>
                             <option value="GitHub">GitHub</option>
                             <option value="Kaggle">Kaggle</option>
+                            <option value="Google">Google</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -198,6 +200,7 @@
                             <option value="Facebook">Facebook</option>
                             <option value="GitHub">GitHub</option>
                             <option value="Kaggle">Kaggle</option>
+                            <option value="Google">Google</option>
                         </select>
                     </div>
                 </div>
@@ -215,6 +218,7 @@
                             <th>Platform B</th>
                             <th title="How similar this identity looks across the two selected platforms.">Consistency Score</th>
                             <th>Checked At</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -273,6 +277,15 @@
                 </table>
                 <div id="eventsPagination"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- Consistency Report Modal -->
+    <div id="consistencyReportModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="closeConsistencyModal()">&times;</span>
+            <h2>📊 Consistency Report</h2>
+            <div id="consistencyReportContent"></div>
         </div>
     </div>
 
