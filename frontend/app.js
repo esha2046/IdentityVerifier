@@ -494,18 +494,33 @@ async function addVerification(event) {
 
 async function loadVerifications() {
     const tbody = document.querySelector('#verificationsTable tbody');
-    tbody.innerHTML = '<tr><td colspan="6" class="loading-row"><div class="loading-spinner"></div> Loading verifications...</td></tr>';
-    
+    tbody.innerHTML = '<tr><td colspan="7" class="loading-row"><div class="loading-spinner"></div> Loading verifications...</td></tr>';
+
+    // Auto-fill anchor ID with the user's own anchor
+    try {
+        const idData = await api.getIdentities();
+        if (idData.success && idData.identities && idData.identities.length > 0) {
+            const myAnchor = idData.identities[0];
+            const anchorInput = document.getElementById('verifyAnchorId');
+            if (anchorInput && !anchorInput.value) {
+                anchorInput.value = myAnchor.anchor_id;
+                anchorInput.readOnly = true;
+                anchorInput.title = `Your identity anchor #${myAnchor.anchor_id}`;
+                anchorInput.style.opacity = '0.7';
+            }
+        }
+    } catch (e) {}
+
     try {
         const data = await api.getVerifications();
         if (data.success) {
             displayVerifications(data.verifications);
         } else {
-            tbody.innerHTML = `<tr><td colspan="6" class="no-data">Error loading verifications: ${data.error || 'Unknown error'}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="no-data">Error loading verifications: ${data.error || 'Unknown error'}</td></tr>`;
         }
     } catch (error) {
         console.error('Error loading verifications:', error);
-        tbody.innerHTML = `<tr><td colspan="6" class="no-data">Error loading verifications: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="no-data">Error loading verifications: ${error.message}</td></tr>`;
     }
 }
 
@@ -662,7 +677,22 @@ function closeConsistencyModal() {
 async function loadEvents() {
     const tbody = document.querySelector('#eventsTable tbody');
     tbody.innerHTML = '<tr><td colspan="5" class="loading-row"><div class="loading-spinner"></div> Loading reputation events...</td></tr>';
-    
+
+    // Auto-fill anchor ID
+    try {
+        const idData = await api.getIdentities();
+        if (idData.success && idData.identities && idData.identities.length > 0) {
+            const myAnchor = idData.identities[0];
+            const anchorInput = document.getElementById('eventAnchorId');
+            if (anchorInput && !anchorInput.value) {
+                anchorInput.value = myAnchor.anchor_id;
+                anchorInput.readOnly = true;
+                anchorInput.title = `Your identity anchor #${myAnchor.anchor_id}`;
+                anchorInput.style.opacity = '0.7';
+            }
+        }
+    } catch (e) {}
+
     try {
         const data = await api.getReputationEvents();
         if (data.success) {
@@ -681,7 +711,7 @@ async function logEvent(event) {
     event.preventDefault();
     
     const data = {
-        anchor_id: document.getElementById('eventAnchorId').value,
+        anchor_id: parseInt(document.getElementById('eventAnchorId').value),
         event_type: document.getElementById('eventType').value,
         platform: document.getElementById('eventPlatform').value,
         score_impact: parseFloat(document.getElementById('scoreImpact').value)

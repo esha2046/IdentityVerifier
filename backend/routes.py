@@ -154,13 +154,15 @@ def get_statistics():
 # ── Identity ───────────────────────────────────────────────────────────────────
 
 def create_identity():
-    identity, error = Identity.create()
+    user_id = request.user.get('user_id')
+    identity, error = Identity.create(user_id=user_id)
     if error:
         return error_response(error, 500)
     return success_response({'identity': dict(identity)})
 
 def get_identities():
-    identities, error = Identity.get_all()
+    user_id = request.user.get('user_id')
+    identities, error = Identity.get_all(user_id=user_id)
     if error:
         return error_response(error, 500)
     return success_response({'identities': [dict(i) for i in identities]})
@@ -214,12 +216,27 @@ def add_verification():
     anchor_id = data.get('anchor_id')
     platform  = data.get('platform_name', '').strip()
     url       = data.get('profile_url', '').strip()
+    user_id   = request.user.get('user_id')
 
     if not all([anchor_id, platform, url]):
         return error_response('Missing required fields: anchor_id, platform_name, profile_url')
 
-    if not isinstance(anchor_id, int) or anchor_id <= 0:
+    try:
+        anchor_id = int(anchor_id)
+    except (ValueError, TypeError):
         return error_response('anchor_id must be a positive integer')
+
+    if anchor_id <= 0:
+        return error_response('anchor_id must be a positive integer')
+
+    # Verify this anchor belongs to the logged-in user
+    owner, _ = execute_query(
+        'SELECT anchor_id FROM identity_anchors WHERE anchor_id = %s AND user_id = %s',
+        (anchor_id, user_id),
+        fetchone=True
+    )
+    if not owner:
+        return error_response('You do not own this identity anchor', 403)
 
     if platform not in ALLOWED_PLATFORMS:
         return error_response(f'Invalid platform. Allowed: {", ".join(ALLOWED_PLATFORMS)}')
@@ -308,8 +325,22 @@ def log_reputation_event():
     if not all([anchor_id, event_type]):
         return error_response('Missing required fields: anchor_id, event_type')
 
-    if not isinstance(anchor_id, int) or anchor_id <= 0:
+    try:
+        anchor_id = int(anchor_id)
+    except (ValueError, TypeError):
         return error_response('anchor_id must be a positive integer')
+
+    if anchor_id <= 0:
+        return error_response('anchor_id must be a positive integer')
+
+    user_id = request.user.get('user_id')
+    owner, _ = execute_query(
+        'SELECT anchor_id FROM identity_anchors WHERE anchor_id = %s AND user_id = %s',
+        (anchor_id, user_id),
+        fetchone=True
+    )
+    if not owner:
+        return error_response('You do not own this identity anchor', 403)
 
     if event_type not in ALLOWED_EVENT_TYPES:
         return error_response(f'Invalid event_type. Allowed: {", ".join(ALLOWED_EVENT_TYPES)}')

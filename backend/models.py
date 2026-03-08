@@ -1,95 +1,89 @@
 """Data models with static methods for database operations"""
 from database import execute_query
-from utils import (
-    generate_keypair, generate_token, calc_consistency_score,
-    sign_verification_claim, verify_signature, build_verification_claim
-)
+from utils import generate_key, generate_token, calc_consistency_score
 
 class Identity:
     """Identity Anchor model"""
-
+    
     @staticmethod
-    def create():
-        """Create new identity with a real Ed25519 key pair"""
+    def create(user_id=None):
+        """Create new identity linked to a user"""
+        from utils import generate_keypair
         public_key_hex, public_key_b64, private_key_enc = generate_keypair()
-
         query = """
-            INSERT INTO identity_anchors 
-                (user_pub_key, public_key_b64, private_key_encrypted, trust_score)
-            VALUES (%s, %s, %s, %s)
-            RETURNING anchor_id, user_pub_key, public_key_b64, trust_score, created_at
+            INSERT INTO identity_anchors (user_id, user_pub_key, public_key_b64, private_key_encrypted, trust_score)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING anchor_id, user_id, user_pub_key, public_key_b64, trust_score, created_at
         """
-        return execute_query(
-            query,
-            (public_key_hex, public_key_b64, private_key_enc, 50.0),
-            fetchone=True,
-            commit=True
-        )
-
+        return execute_query(query, (user_id, public_key_hex, public_key_b64, private_key_enc, 50.0), fetchone=True, commit=True)
+    
     @staticmethod
-    def get_all():
-        """Get all identities"""
+    def get_all(user_id=None):
+        """Get identities — filtered by user if user_id provided"""
+        if user_id:
+            query = """
+                SELECT anchor_id, user_id, user_pub_key, public_key_b64, trust_score, created_at
+                FROM identity_anchors
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+            """
+            return execute_query(query, (user_id,))
         query = """
-            SELECT anchor_id, user_pub_key, public_key_b64, trust_score, created_at
+            SELECT anchor_id, user_id, user_pub_key, public_key_b64, trust_score, created_at
             FROM identity_anchors
             ORDER BY created_at DESC
         """
         return execute_query(query)
-
+    
     @staticmethod
     def get_by_id(anchor_id):
         """Get identity by ID"""
         query = "SELECT * FROM identity_anchors WHERE anchor_id = %s"
         return execute_query(query, (anchor_id,), fetchone=True)
-
+    
     @staticmethod
     def search(term):
         """Search identities"""
         query = """
-            SELECT anchor_id, user_pub_key, public_key_b64, trust_score, created_at
+            SELECT anchor_id, user_pub_key, trust_score, created_at
             FROM identity_anchors
-            WHERE CAST(anchor_id AS TEXT) LIKE %s
+            WHERE CAST(anchor_id AS TEXT) LIKE %s 
                OR user_pub_key LIKE %s
             ORDER BY created_at DESC
         """
         search_term = f"%{term}%"
         return execute_query(query, (search_term, search_term))
-
+    
     @staticmethod
     def get_details(anchor_id):
         """Get complete identity details"""
         identity, error = Identity.get_by_id(anchor_id)
         if error or not identity:
             return None, error or "Identity not found"
-
+        
         verifications, _ = execute_query(
-            """
-            SELECT verification_id, anchor_id, platform_name, profile_url,
-                   verified_at, trust_score, signature, signed_at
-            FROM platform_verifications
-            WHERE anchor_id = %s ORDER BY verified_at DESC
-            """,
+            "SELECT * FROM platform_verifications WHERE anchor_id = %s ORDER BY verified_at DESC",
             (anchor_id,)
         )
-
+        
         events, _ = execute_query(
             "SELECT * FROM reputation_events WHERE anchor_id = %s ORDER BY time_stamp DESC",
             (anchor_id,)
         )
-
+        
         return {
-            'identity':      identity,
+            'identity': identity,
             'verifications': verifications or [],
-            'events':        events or []
+            'events': events or []
         }, None
-
+    
     @staticmethod
     def get_trust_history(anchor_id):
         """Get trust score history"""
         identity, error = Identity.get_by_id(anchor_id)
         if error or not identity:
             return None, error or "Identity not found"
-
+        
         events, _ = execute_query(
             """
             SELECT event_id, anchor_id, event_type, platform, time_stamp
@@ -100,122 +94,91 @@ class Identity:
             """,
             (anchor_id,)
         )
-
+        
         return {
             'current_score': identity['trust_score'],
-            'history':       events or []
+            'history': events or []
         }, None
-
+    
     @staticmethod
     def update_trust_score(anchor_id, impact):
         """Update trust score"""
         query = """
-            UPDATE identity_anchors
+            UPDATE identity_anchors 
             SET trust_score = GREATEST(LEAST(trust_score + %s, 100), 0)
             WHERE anchor_id = %s
             RETURNING trust_score
         """
         return execute_query(query, (impact, anchor_id), fetchone=True, commit=True)
-
+    
     @staticmethod
     def get_statistics():
         """Get dashboard statistics"""
         stats = {}
-
+        
         result, _ = execute_query("SELECT COUNT(*) as count FROM identity_anchors", fetchone=True)
         stats['total_identities'] = result['count'] if result else 0
-
+        
         result, _ = execute_query("SELECT COUNT(*) as count FROM platform_verifications", fetchone=True)
         stats['total_verifications'] = result['count'] if result else 0
-
+        
         result, _ = execute_query("SELECT AVG(trust_score) as avg FROM identity_anchors", fetchone=True)
         stats['avg_trust'] = result['avg'] if result and result['avg'] else 0.0
-
+        
         result, _ = execute_query("SELECT AVG(consistency_score) as avg FROM consistency_checks", fetchone=True)
         stats['avg_consistency'] = result['avg'] if result and result['avg'] else 0.0
-
+        
         return stats, None
 
 
 class Verification:
     """Platform Verification model"""
-
+    
     @staticmethod
     def create(anchor_id, platform, url):
-        """Create new verification and sign it with the identity's private key"""
-
-        # Get identity (need private key to sign)
+        """Create new verification"""
+        # Check if identity exists
         identity, error = Identity.get_by_id(anchor_id)
         if error or not identity:
             return None, "Identity not found"
-
-        private_key_enc = identity.get('private_key_encrypted')
-        public_key_hex  = identity.get('user_pub_key')
-
-        # Build and sign the verification claim
-        from datetime import datetime
-        verified_at = datetime.utcnow().isoformat()
-        claim       = build_verification_claim(anchor_id, platform, url, verified_at)
-        signature   = None
-
-        if private_key_enc:
-            try:
-                signature = sign_verification_claim(private_key_enc, claim)
-            except Exception as e:
-                print(f"Warning: Could not sign verification: {e}")
-
-        # Insert verification with signature
+        
+        # Insert verification
         query = """
-            INSERT INTO platform_verifications
-                (anchor_id, platform_name, profile_url, verification_token, signature, signed_at)
-            VALUES (%s, %s, %s, %s, %s, NOW())
-            RETURNING verification_id, anchor_id, platform_name, profile_url,
-                      verification_token, verified_at, signature, signed_at
+            INSERT INTO platform_verifications 
+            (anchor_id, platform_name, profile_url, verification_token)
+            VALUES (%s, %s, %s, %s)
+            RETURNING verification_id, anchor_id, platform_name, profile_url, 
+                      verification_token, verified_at
         """
         verification, error = execute_query(
-            query,
-            (anchor_id, platform, url, generate_token(), signature),
-            fetchone=True,
+            query, 
+            (anchor_id, platform, url, generate_token()), 
+            fetchone=True, 
             commit=True
         )
-
+        
         if error:
             return None, error
-
+        
         # Update trust score
         result, _ = Identity.update_trust_score(anchor_id, 5.0)
         if result:
             verification['trust_score'] = result['trust_score']
-
+        
         # Log event
         execute_query(
             "INSERT INTO reputation_events (anchor_id, event_type, platform) VALUES (%s, %s, %s)",
             (anchor_id, 'successful_verification', platform),
             commit=True
         )
-
+        
         return verification, None
-
-    @staticmethod
-    def verify_claim(anchor_id, platform, profile_url, verified_at, signature_b64):
-        """
-        Verify a verification claim signature.
-        Returns True if the signature is valid (proof hasn't been tampered with).
-        """
-        identity, error = Identity.get_by_id(anchor_id)
-        if error or not identity:
-            return False, "Identity not found"
-
-        claim  = build_verification_claim(anchor_id, platform, profile_url, verified_at)
-        valid  = verify_signature(identity['user_pub_key'], claim, signature_b64)
-        return valid, None
-
+    
     @staticmethod
     def get_all():
         """Get all verifications"""
         query = """
-            SELECT v.verification_id, v.anchor_id, v.platform_name, v.profile_url,
-                   v.verified_at, v.signature, v.signed_at, i.trust_score
+            SELECT v.*, i.trust_score
             FROM platform_verifications v
             JOIN identity_anchors i ON v.anchor_id = i.anchor_id
             ORDER BY v.verified_at DESC
@@ -224,85 +187,37 @@ class Verification:
 
 
 class ConsistencyCheck:
-    """Consistency Check model — now uses real NLP algorithms"""
-
+    """Consistency Check model"""
+    
     @staticmethod
     def create(identity_anchor, platform_a, platform_b):
-        """Create consistency check using real NLP if OAuth data available"""
-        import json
-        from consistency import run_consistency_check
-        from database import execute_query as db_query
-
+        """Create consistency check"""
         if platform_a == platform_b:
             return None, "Platforms must be different"
-
-        # Try to fetch real OAuth profile data for this identity
-        profile_a = None
-        profile_b = None
-
-        # Look up stored OAuth verifications for this anchor
-        verifications, _ = db_query(
-            """
-            SELECT platform, platform_username, profile_url
-            FROM oauth_verifications
-            WHERE anchor_id = %s
-            """,
-            (identity_anchor,)
-        )
-
-        if verifications:
-            for v in verifications:
-                platform = v['platform']
-                username = v['platform_username']
-
-                # Fetch real profile data from GitHub API if possible
-                if platform == platform_a:
-                    if platform == 'GitHub':
-                        from consistency import fetch_github_profile
-                        profile_a = fetch_github_profile(username)
-                    else:
-                        profile_a = {'username': username, 'name': username, 'bio': '', 'platform': platform}
-
-                elif platform == platform_b:
-                    if platform == 'GitHub':
-                        from consistency import fetch_github_profile
-                        profile_b = fetch_github_profile(username)
-                    else:
-                        profile_b = {'username': username, 'name': username, 'bio': '', 'platform': platform}
-
-        # Run the consistency check
-        score, result = run_consistency_check(
-            identity_anchor, platform_a, platform_b, profile_a, profile_b
-        )
-
-        # Store result
+        
+        # Calculate score with parameters
+        score = calc_consistency_score(identity_anchor, platform_a, platform_b)
+        
         query = """
-            INSERT INTO consistency_checks
-                (user_group, platform_a, platform_b, consistency_score, breakdown, algorithm)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING check_id, user_group, platform_a, platform_b,
-                      consistency_score, breakdown, algorithm, checked_at
+            INSERT INTO consistency_checks 
+            (user_group, platform_a, platform_b, consistency_score)
+            VALUES (%s, %s, %s, %s)
+            RETURNING check_id, user_group, platform_a, platform_b, 
+                      consistency_score, checked_at
         """
-        return db_query(
+        return execute_query(
             query,
-            (
-                identity_anchor,
-                platform_a,
-                platform_b,
-                score,
-                json.dumps(result.get('breakdown', {})),
-                result.get('algorithm', 'unknown')
-            ),
+            (identity_anchor, platform_a, platform_b, score),
             fetchone=True,
             commit=True
         )
-
+    
     @staticmethod
     def get_all():
         """Get all consistency checks"""
         query = """
-            SELECT check_id, user_group, platform_a, platform_b,
-                   consistency_score, breakdown, algorithm, checked_at
+            SELECT check_id, user_group, platform_a, platform_b, 
+                   consistency_score, checked_at
             FROM consistency_checks
             ORDER BY checked_at DESC
         """
@@ -311,14 +226,16 @@ class ConsistencyCheck:
 
 class ReputationEvent:
     """Reputation Event model"""
-
+    
     @staticmethod
     def create(anchor_id, event_type, platform, score_impact):
         """Create reputation event"""
+        # Check if identity exists
         identity, error = Identity.get_by_id(anchor_id)
         if error or not identity:
             return None, "Identity not found"
-
+        
+        # Insert event
         query = """
             INSERT INTO reputation_events (anchor_id, event_type, platform)
             VALUES (%s, %s, %s)
@@ -330,15 +247,16 @@ class ReputationEvent:
             fetchone=True,
             commit=True
         )
-
+        
         if error:
             return None, error
-
+        
+        # Update trust score if impact provided
         if score_impact != 0:
             Identity.update_trust_score(anchor_id, score_impact)
-
+        
         return event, None
-
+    
     @staticmethod
     def get_all():
         """Get all reputation events"""

@@ -76,16 +76,14 @@ def save_oauth_verification(user_id, platform, platform_user_id, username, profi
     if error:
         return None, error
 
-    # Bump trust score if anchor exists
     if anchor_id:
         execute_query(
-            "UPDATE identity_anchors SET trust_score = LEAST(trust_score + 5, 100) WHERE anchor_id = %s",
-            (anchor_id,),
-            commit=True
-        )
-        execute_query(
-            "INSERT INTO reputation_events (anchor_id, event_type, platform) VALUES (%s, %s, %s)",
-            (anchor_id, 'successful_verification', platform),
+            """
+            INSERT INTO platform_verifications (anchor_id, platform_name, profile_url, verification_token)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+            """,
+            (anchor_id, platform, profile_url, 'oauth_verified'),
             commit=True
         )
 
