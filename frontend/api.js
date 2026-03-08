@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://identity-verifier-tt63.onrender.com/api';
 
 // Attach JWT token to every request automatically
 function authHeaders() {

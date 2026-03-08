@@ -14,6 +14,7 @@ CORS(app, resources={r"/api/*": {
         "http://127.0.0.1:5500",
         "http://localhost:5000",
         "null"
+        "https://identity-verifier-tt63.onrender.com/"
     ],
     "methods": ["GET", "POST", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"]

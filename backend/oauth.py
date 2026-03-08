@@ -174,7 +174,7 @@ def google_login():
     google_auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth"
         f"?client_id={GOOGLE_CLIENT_ID}"
-        f"&redirect_uri=http://localhost:5000/api/oauth/google/callback"
+        f"&redirect_uri=https://identity-verifier-tt63.onrender.com/api/oauth/google/callback"
         f"&response_type=code"
         f"&scope=openid%20email%20profile"
         f"&state={user_id}"
@@ -198,7 +198,7 @@ def google_callback():
             'client_secret': GOOGLE_CLIENT_SECRET,
             'code':          code,
             'grant_type':    'authorization_code',
-            'redirect_uri':  'http://localhost:5000/api/oauth/google/callback'
+            'redirect_uri': 'https://identity-verifier-tt63.onrender.com/api/oauth/google/callback'
         }
     )
     token_data   = token_res.json()
