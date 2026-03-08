@@ -469,7 +469,7 @@ async function addVerification(event) {
     // Only proceed with API call if simulation was successful
     if (isSuccess) {
         const data = {
-            anchor_id: anchorId,
+            anchor_id: parseInt(anchorId),
             platform_name: platform,
             profile_url: profileUrl
         };
