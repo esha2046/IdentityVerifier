@@ -213,7 +213,7 @@ def google_callback():
     google_id   = profile.get('id')
     username    = profile.get('name')
     email       = profile.get('email')
-    profile_url = profile.get('link', f"https://accounts.google.com")
+    profile_url = f"https://google.com/profile/{email}" if email else f"https://accounts.google.com/profile/{google_id}"
 
     if not google_id:
         return error_response('Failed to fetch Google profile')
