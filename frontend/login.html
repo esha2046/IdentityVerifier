@@ -4,238 +4,325 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Identity Verifier</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* ── Design Tokens ── */
+        :root {
+            --bg:           #0a0c10;
+            --bg-2:         #0f1117;
+            --bg-3:         #151820;
+            --surface:      #1a1d26;
+            --surface-2:    #21252f;
+            --border:       #252933;
+            --border-2:     #2e3340;
+            --text:         #e8eaf0;
+            --text-2:       #9098aa;
+            --text-3:       #5a6070;
+            --accent:       #4f8ef7;
+            --accent-dim:   rgba(79,142,247,0.094);
+            --accent-2:     #00d4a8;
+            --accent-2-dim: rgba(0,212,168,0.071);
+            --danger:       #f75f5f;
+            --danger-dim:   rgba(247,95,95,0.082);
+            --success:      #4fcd8c;
+            --success-dim:  rgba(79,205,140,0.082);
+            --radius:       10px;
+            --radius-lg:    16px;
+            --shadow-lg:    0 8px 48px rgba(0,0,0,0.6);
+            --font-display: 'Syne', sans-serif;
+            --font-body:    'DM Sans', sans-serif;
+            --font-mono:    'DM Mono', monospace;
         }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.6;
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
-            padding: 20px;
+            justify-content: center;
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Card ── */
         .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
+            position: relative;
+            z-index: 1;
             width: 100%;
-            max-width: 900px;
-            display: flex;
-            min-height: 550px;
+            max-width: 960px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: var(--surface);
+            border: 1px solid var(--border-2);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
         }
 
+        /* ── Left panel ── */
         .info-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 60px 40px;
-            flex: 1;
+            background: linear-gradient(135deg, #0f1117, #151820);
+            padding: 48px 40px;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            border-right: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-section::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 240px; height: 240px;
+            background: radial-gradient(circle, var(--accent-dim), transparent 70%);
+            pointer-events: none;
+        }
+
+        .info-section::after {
+            content: '';
+            position: absolute;
+            bottom: -40px; left: -40px;
+            width: 180px; height: 180px;
+            background: radial-gradient(circle, var(--accent-2-dim), transparent 70%);
+            pointer-events: none;
         }
 
         .info-section h1 {
-            font-size: 32px;
-            margin-bottom: 20px;
-            font-weight: 700;
+            font-family: var(--font-display);
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 12px;
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: var(--accent-2);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--accent-2);
+            animation: pulse 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.6; transform: scale(0.8); }
         }
 
         .info-section p {
-            font-size: 16px;
-            line-height: 1.6;
-            opacity: 0.95;
+            color: var(--text-2);
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 32px;
         }
 
-        .info-section .features {
-            margin-top: 30px;
+        .features {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .feature-item {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
-            font-size: 14px;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-2);
         }
 
         .feature-item::before {
-            content: "✓";
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            background: rgba(255, 255, 255, 0.2);
+            content: '';
+            width: 6px; height: 6px;
+            background: var(--accent-2);
             border-radius: 50%;
-            text-align: center;
-            line-height: 24px;
-            margin-right: 12px;
-            font-weight: bold;
+            flex-shrink: 0;
+            box-shadow: 0 0 8px var(--accent-2);
         }
 
+        /* ── Right panel ── */
         .form-section {
-            flex: 1;
-            padding: 60px 40px;
+            padding: 48px 40px;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            background: var(--surface);
         }
 
         .form-header {
-            text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 28px;
         }
 
         .form-header h2 {
-            font-size: 28px;
-            color: #333;
-            margin-bottom: 10px;
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
         }
 
         .form-header p {
-            color: #666;
-            font-size: 14px;
+            color: var(--text-3);
+            font-size: 13px;
         }
 
+        /* ── Form Controls ── */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
+            font-size: 11px;
             font-weight: 500;
-            font-size: 14px;
+            color: var(--text-2);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            padding: 10px 14px;
+            background: var(--bg-3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: var(--font-body);
             font-size: 14px;
-            transition: all 0.3s;
+            transition: border-color 0.2s, box-shadow 0.2s;
             outline: none;
         }
 
         .form-group input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
         }
 
         .form-group input::placeholder {
-            color: #999;
+            color: var(--text-3);
         }
 
+        /* ── Button ── */
         .submit-btn {
             width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--accent), #6ba3f9);
+            color: #fff;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: var(--radius);
+            font-family: var(--font-body);
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
+            transition: all 0.2s;
+            margin-top: 4px;
+            letter-spacing: 0.01em;
+            box-shadow: 0 4px 20px rgba(79,142,247,0.3);
         }
 
         .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #6ba3f9, var(--accent));
+            transform: translateY(-1px);
+            box-shadow: 0 6px 28px rgba(79,142,247,0.45);
         }
 
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-
-        .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .alert.show {
-            display: block;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .demo-hint {
-            margin-top: 20px;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 13px;
-            color: #666;
-        }
-
-        .toggle-link {
-            text-align: center;
-            margin-top: 16px;
-            font-size: 13px;
-            color: #666;
-        }
-
-        .toggle-link span {
-            color: #667eea;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .toggle-link span:hover {
-            text-decoration: underline;
-        }
+        .submit-btn:active { transform: translateY(0); }
 
         .submit-btn:disabled {
-            opacity: 0.7;
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
 
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        /* ── Alerts ── */
+        .alert {
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            margin-bottom: 16px;
+            border: 1px solid transparent;
+            display: none;
         }
 
+        .alert.show { display: block; }
+
+        .alert-error {
+            background: var(--danger-dim);
+            border-color: rgba(247,95,95,0.188);
+            color: var(--danger);
+        }
+
+        .alert-success {
+            background: var(--success-dim);
+            border-color: rgba(79,205,140,0.188);
+            color: var(--success);
+        }
+
+        /* ── Toggle link ── */
+        .toggle-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--text-3);
+        }
+
+        .toggle-link span {
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .toggle-link span:hover { text-decoration: underline; }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+
+        /* ── Responsive ── */
         @media (max-width: 768px) {
             .container {
-                flex-direction: column;
+                grid-template-columns: 1fr;
             }
-
             .info-section {
-                padding: 40px 30px;
+                display: none;
             }
-
             .form-section {
                 padding: 40px 30px;
-            }
-
-            .info-section h1 {
-                font-size: 24px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Left: Branding -->
         <div class="info-section">
-            <h1>🔐 Identity Verifier</h1>
+            <h1><span class="logo-dot"></span> Identity Verifier</h1>
             <p>Secure cross-platform digital identity verification system with blockchain-inspired trust scoring.</p>
             <div class="features">
                 <div class="feature-item">Multi-platform identity verification</div>
@@ -245,6 +332,7 @@
             </div>
         </div>
 
+        <!-- Right: Form -->
         <div class="form-section">
             <div class="form-header">
                 <h2 id="formTitle">Welcome Back</h2>
@@ -266,7 +354,7 @@
                 <button type="submit" class="submit-btn" id="loginBtn">Sign In</button>
             </form>
 
-            <!-- Register Form (hidden by default) -->
+            <!-- Register Form (hidden) -->
             <form id="register-form" style="display:none;">
                 <div class="form-group">
                     <label for="reg-username">Username</label>
@@ -338,8 +426,7 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    // Store JWT and user info
-                    const expiry = new Date().getTime() + (24 * 60 * 60 * 1000); // 24 hours
+                    const expiry = new Date().getTime() + (24 * 60 * 60 * 1000);
                     localStorage.setItem('jwt_token', data.token);
                     localStorage.setItem('jwt_expiry', expiry);
                     localStorage.setItem('user', JSON.stringify(data.user));
@@ -399,7 +486,7 @@
             }
         });
 
-        // If already logged in with valid token, skip login page
+        // Skip login if already authenticated
         const token = localStorage.getItem('jwt_token');
         const expiry = localStorage.getItem('jwt_expiry');
         if (token && expiry && new Date().getTime() < parseInt(expiry)) {
