@@ -155,11 +155,10 @@ def github_callback():
         user_id, 'GitHub', github_id, username, profile_url, access_token
     )
     if error:
-        return redirect(f"http://127.0.0.1:5500/frontend/index.html?oauth_error={error}")
+        return redirect(f"https://identity-verifier-tt63.onrender.com/?oauth_error={error}")
 
+    return redirect(f"https://identity-verifier-tt63.onrender.com/?oauth_success=true&platform=GitHub&username={username}")
 
-    # Redirect back to frontend with success
-    return redirect(f"http://127.0.0.1:5500/frontend/index.html?oauth_success=true&platform=GitHub&username={username}")
 
 
 
@@ -225,9 +224,9 @@ def google_callback():
         user_id, 'Google', google_id, username or email, profile_url, access_token
     )
     if error:
-        return redirect(f"http://127.0.0.1:5500/frontend/index.html?oauth_error={error}")
+        return redirect(f"https://identity-verifier-tt63.onrender.com/?oauth_error={error}")
 
-    return redirect(f"http://127.0.0.1:5500/frontend/index.html?oauth_success=true&platform=Google&username={username or email}")
+    return redirect(f"https://identity-verifier-tt63.onrender.com/?oauth_success=true&platform=Google&username={username or email}")
 
 
 

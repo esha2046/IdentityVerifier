@@ -379,12 +379,12 @@
             }
             // Open the OAuth flow in the same tab
             // Backend will redirect to GitHub/Google, then back to index.html
-            window.location.href = `http://localhost:5000/api/oauth/${platform}?user_id=${user.user_id}`;
+            window.location.href = `https://identity-verifier-tt63.onrender.com/api/oauth/${platform}?user_id=${user.user_id}`;
         }
 
         async function loadConnectedAccounts() {
             try {
-                const res = await fetch('http://localhost:5000/api/oauth/verifications', {
+                const res = await fetch('https://identity-verifier-tt63.onrender.com/api/oauth/verifications', {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('jwt_token')}` }
                 });
                 const data = await res.json();
