@@ -15,20 +15,13 @@ The system also evaluates **cross-platform identity consistency using NLP simila
 
 ### Authentication
 - JWT authentication with 24-hour expiry  
-- bcrypt password hashing  
-- Token-protected API routes
 
 ### Identity Anchors
-- Ed25519 key pair generation for each identity
 - Private keys encrypted using Fernet
 - QR code generation for public key sharing
-- JSON export of identity data
-- Trust score tracking
 
 ### Platform Verification
 - OAuth 2.0 integration with GitHub and Google
-- Encrypted storage of OAuth tokens
-- Manual verification support for other platforms
 - Cryptographic signatures for verification claims
 
 ### Consistency Analysis
@@ -40,7 +33,6 @@ The system also evaluates **cross-platform identity consistency using NLP simila
 ### Reputation System
 - Positive and negative reputation events
 - Trust score updates based on events
-- Full event history tracking
 
 ---
 ## License
